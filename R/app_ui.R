@@ -24,7 +24,7 @@ app_ui <- function(request) {
                    startExpanded = FALSE,
                    menuSubItem("Level 2", tabName = "occurrenceL2"),
                    menuSubItem("Level 3", tabName = "occurrenceL3")
-                   ),
+          ),
           menuItem("FoodEx1", tabName = "foodex1", icon = icon("th")),
           menuItem("Mean Consumption", tabName = "meanConsumption", icon = icon("th")),
           menuItem("Tables", tabName = "tables", icon = icon("th")),
@@ -41,90 +41,104 @@ app_ui <- function(request) {
           tabItem(tabName = "exposure",
                   h3("Explore exposure"),
                   fluidRow(
-                    box(title= "Substance Info", tableOutput("subInfo_exposure"))
+                    box(title= "Substance Info"#, tableOutput("subInfo_exposure")
+                        )
                     #box(title = "fff", mod_showSubstanceInfo_ui("showSubstanceInfo_ui_1"))
                     
                   ),
                   tags$hr(style="border-color: purple;"),
                   #h4("Exposure Statistics"),
                   fluidRow(
-                    column(4,
-                      
-                    box(title="Exposure Statistics (adjusted by Population)", 
-                        textOutput("stats_label"),
-                        tableOutput("tbl_exposure_stats")
-                        ,width = NULL 
-                        ),
-                    box(width = NULL,
-                        title = "Customise tables",
-                        fluidRow(
-                          column(width = 6,
-                            numericInput("cust_digits", "Digits",value = 3, min = 0, max = 10, step = 1)
-                            
-                          ),
-                          column(width =  6,
-                            numericInput("cust_digits2", "Digits",value = 3, min = 0,  max = 10, step = 1)
-                            
-                          )
-                          )
-                        )
+                    column(3,
+                           box(title="Exposure Statistics (adjusted by Population)", 
+                               textOutput("stats_label"),
+                               br(),
+                               tableOutput("tbl_exposure_stats")
+                               ,width = NULL 
+                           ),
+                           box(width = NULL,
+                               title = "Customise tables & graphs",
+                               collapsed = TRUE,
+                               collapsible = TRUE,
+                               
+                               fluidRow(
+                                 column(width = 5,
+                                        h5("Graphs"),
+                                        numericInput("n.breaks",
+                                                     value = 10,
+                                                     min = globals$min.n.breaks,
+                                                     max = globals$max.n.breaks,
+                                                     step = 1,
+                                                     label = "Number of breaks"
+                                        ),
+                                        sliderInput("pct.digits_exposure",
+                                                     value = 1,
+                                                     min = 0,
+                                                     max = 3,
+                                                     step = 1,
+                                                     ticks = TRUE,
+                                                     label = "% decimals"
+                                        ),
+                                        # shinyWidgets::noUiSliderInput(
+                                        #   "pct.digits_exposure",
+                                        #   value = 1,
+                                        #   min = 0,
+                                        #   max = 3,
+                                        #   step = 1,
+                                        #   label = "% accuracy"
+                                        # ),
+                                        shinyWidgets::prettyCheckbox(
+                                          inputId = "show_stats_exposure",
+                                          value = TRUE,
+                                          label ="Show reference(s) on graph?",
+                                          icon = icon("check"),
+                                          status = "success"
+                                        )
+                                        
+                                 ),
+                                 column(width = 4,
+                                        offset = 2,
+                                        h5("Tables  & Graph"),
+                                        numericInput("digits_exposure", 
+                                                     "Digits",
+                                                     value = 3, 
+                                                     min = 1, max = 10, 
+                                                     step = 1
+                                                     )
+                                 )
+                                 
+                               )
+                           )
+                           
                     ),
                     column(7,
-                           box(title = "Distribution of exposure", width = NULL,
-                               shinyWidgets::radioGroupButtons("slct_scenario",
-                                                               label = "Scenario",
-                                                               choices = scenarios,
-                                                               selected = scenarios[2]  #MB
-                               ),
+                           offset = 1,
+                           box(title = "Distribution of exposure", 
+                               width = NULL,
+                               uiOutput("scenario_UI_exposure"),
                                tabBox(id = "graphs",width = NULL, 
                                       title= "",
                                       tabPanel(title = "PDF",
                                                plotOutput("exposure_pdf")
                                       ),
                                       tabPanel(title = "CDF",
-                                               "Cummulative Probability distribution",
                                                plotOutput("exposure_cdf")
                                       )
-                               ),
-                               box(title = "Customise graphs",collapsed = TRUE, collapsible = TRUE,width = NULL, 
-                                   fluidRow(
-                                     column(width = 6,
-                                            numericInput("n.breaks",
-                                                         value = 10, 
-                                                         min = globals$min.n.breaks,
-                                                         max = globals$max.n.breaks,
-                                                         step = 1,
-                                                         label = "Number of breaks" 
-                                            )
-                                            )
-                                     ,column(
-                                       width = 6,
-                                       shinyWidgets::prettyCheckbox(
-                                         inputId = "nice_breaks",
-                                         value = TRUE,
-                                         label ="Nice breaks?", 
-                                         icon = icon("check"),
-                                         status = "success"
-                                       )
-                                     )
-                                     
-                                   )
-                                   
                                )
                                
-                               )
-                          
+                               
+                           )
                     )
                     
-                    )
-                    
+                  ) #  fluidRow
+                  
           ),
           
           # EXPOSURE by GROUP TAB ####
           tabItem(tabName = "exposureDemo",
                   h3("Explore exposure, grouped by demographic information"),
                   fluidRow(
-                    box("Substance Info", tableOutput("subInfo_exposureDemo")),
+                    #box("Substance Info", tableOutput("subInfo_exposureDemo")),
                     
                   ),
                   tags$hr(style="border-color: black;"),
@@ -132,18 +146,14 @@ app_ui <- function(request) {
                     
                     column(3,
                            box(
-                             selectInput("slct_demo",  "Select demographic", choices = vars_demo),
-                             shinyWidgets::radioGroupButtons("slct_scenario_Demo",
-                                                             label = "Scenario",
-                                                             choices = scenarios,
-                                                             selected = scenarios[2]  #MB
-                                                             )
+                             selectInput("slct_demo",  
+                                         "Select demographic", 
+                                         choices = vars_demo
+                             )
+                             , uiOutput("scenario_UI_exposureDemo")
                              , width = NULL
                            )
-                        )
                     ),
-                  # Stats and Graphs
-                  fluidRow(
                     column(7,
                            box(
                              
@@ -151,8 +161,36 @@ app_ui <- function(request) {
                              #box("Substance Info", mod_showSubstanceInfo_ui("showSubstanceInfo_ui_2"))
                              ,width = NULL
                            )
+                    )
+                  ),
+                  # Stats and Graphs
+                  fluidRow(
+                    column(3,
+                           box(title = "Customise tables & graphs",
+                               collapsed = TRUE, collapsible = TRUE,width = NULL, 
+                               numericInput("digits_exposureDemo", 
+                                            "Digits",
+                                            value = 2, 
+                                            min = 1, max = 10, 
+                                            step = 1
+                               ),
+                               numericInput("pct.digits_exposureDemo", 
+                                            "% Digits",
+                                            value = 2, 
+                                            min = 0, max = 5, 
+                                            step = 1
+                               ),
+                               sliderInput("bandwidthDemo",
+                                           "Bandwidth (PDF)",
+                                           value = NULL,
+                                           min = 0, max = 0.5,
+                                           step = 0.01,
+                                           round = -3 #3 decimals
+                                           
+                                           )
+                           )
                     ),
-                    column(5,
+                    column(7,
                            box(title = "Distribution of exposure", width = NULL,
                                tabBox(id = "graphsDemo",width = NULL, 
                                       title= "",
@@ -160,29 +198,15 @@ app_ui <- function(request) {
                                                plotOutput("exposure_pdfDemo")
                                       ),
                                       tabPanel(title = "CDF",
-                                               "Cummulative Probability distribution",
                                                plotOutput("exposure_cdfDemo")
                                       )
-                               ),
-                               box(title = "Customise graphs",
-                                   collapsed = TRUE, collapsible = TRUE,width = NULL, 
-                                   numericInput("n.breaksDemo",
-                                                value = 10, min = 5,max = 20,step = 1,label = "Number of breaks" 
-                                                ),
-                                   shinyWidgets::prettyCheckbox(
-                                     inputId = "nice_breaksDemo",
-                                     value = TRUE,
-                                     label ="Nice breaks?", 
-                                     icon = icon("check"),
-                                     status = "success"
-                                   )
                                )
                                
                            )
                     )
-                    )
-                    ),
-                           
+                  )
+          ),
+          
           
           # Contribution TAB ####
           tabItem("contribution",
@@ -207,114 +231,114 @@ app_ui <- function(request) {
                            )
                     )
                     
-                ),
-                fluidRow(
-                  # column(4,
-                  # box(width = NULL,
-                  #     title = "Customise tables and Graphs",
-                  #     collapsed = TRUE,
-                  #     collapsible = TRUE,
-                  #     fluidRow(
-                  #       column(width = 3,
-                  #              numericInput("contr_digitsExp", "Digits exposure",
-                  #                           value = 1, min = 0, max = 10, step = 1)
-                  #              
-                  #       ),
-                  #       column(width = 3,
-                  #              numericInput("contr_digitsPct", "Digits percent",
-                  #                           value = 2, min = 0, max = 10, step = 1)
-                  #              ),
-                  #       column(width =  6,
-                  #              sliderInput(
-                  #                inputId = "contr_filter",
-                  #                value = 1,
-                  #                label ="Show contribution greater than..", 
-                  #                min  = 0, max = 50,
-                  #                post = "%"
-                  #              )                               
-                  #       ),
-                  #       column(width =  6,
-                  #              sliderInput(
-                  #                inputId = "contr_height",
-                  #                value = 800,
-                  #                min  = 500, max = 1200,
-                  #                label ="Graph height", 
-                  #                step = 50,
-                  #                post = "px"
-                  #              )                               
-                  #       )
-                  #     )
-                  # )
-                  # )
-                ),
-                fluidRow(
-                  column(width = 9,
-                         
-                         tabBox(id = "contribution_panel",width = NULL, 
-                                title= "",
-                                tabPanel(title = "Table",
-                                         reactable::reactableOutput("contribution")
-                                ),
-                                tabPanel(title = "Graphs",
-                                         uiOutput("contr_UI",inline = TRUE)
-                                         #ggiraph::girafeOutput("contr_graph", height = NULL)
-                                )
-                         ) 
-                    
                   ),
-                  column(3,
-                         box(width = NULL,
-                             title = "Customise tables and Graphs",
-                             collapsed = TRUE,
-                             collapsible = TRUE,
-                             fluidRow(
-                               column(width = 3,
-                                      numericInput("contr_digitsExp", "Digits exposure",
-                                                   value = 1, min = 0, max = 10, step = 1)
-                                      
-                               ),
-                               column(width = 3,
-                                      numericInput("contr_digitsPct", "Digits percent",
-                                                   value = 2, min = 0, max = 10, step = 1)
-                               ),
-                               column(width =  6,
-                                      # sliderInput(
-                                      #   inputId = "contr_filter",
-                                      #   value = 1,
-                                      #   label ="Show contribution greater than..",
-                                      #   min  = 0, max = 50,
-                                      #   post = "%"
-                                      # )
-                                      shinyWidgets::radioGroupButtons(
-                                        inputId = "contr_filter",
-                                        choices = c("1%" =1, "5%"  =  5, "10%" =  10),
-                                        label ="Show contribution greater than..",
-                                        selected = 1
-                                      )
-                               ),
-                               column(width =  6,
-                                      sliderInput(
-                                        inputId = "contr_height",
-                                        value = 800,
-                                        min  = 500, max = 1200,
-                                        label ="Graph height",
-                                        step = 50,
-                                        post = "px"
-                                      )
-                               )
-                             )
-                         )
+                  fluidRow(
+                    # column(4,
+                    # box(width = NULL,
+                    #     title = "Customise tables and Graphs",
+                    #     collapsed = TRUE,
+                    #     collapsible = TRUE,
+                    #     fluidRow(
+                    #       column(width = 3,
+                    #              numericInput("contr_digitsExp", "Digits exposure",
+                    #                           value = 1, min = 0, max = 10, step = 1)
+                    #              
+                    #       ),
+                    #       column(width = 3,
+                    #              numericInput("contr_digitsPct", "Digits percent",
+                    #                           value = 2, min = 0, max = 10, step = 1)
+                    #              ),
+                    #       column(width =  6,
+                    #              sliderInput(
+                    #                inputId = "contr_filter",
+                    #                value = 1,
+                    #                label ="Show contribution greater than..", 
+                    #                min  = 0, max = 50,
+                    #                post = "%"
+                    #              )                               
+                    #       ),
+                    #       column(width =  6,
+                    #              sliderInput(
+                    #                inputId = "contr_height",
+                    #                value = 800,
+                    #                min  = 500, max = 1200,
+                    #                label ="Graph height", 
+                    #                step = 50,
+                    #                post = "px"
+                    #              )                               
+                    #       )
+                    #     )
+                    # )
+                    # )
+                  ),
+                  fluidRow(
+                    column(width = 9,
+                           
+                           tabBox(id = "contribution_panel",width = NULL, 
+                                  title= "",
+                                  tabPanel(title = "Table",
+                                           reactable::reactableOutput("contribution")
+                                  ),
+                                  tabPanel(title = "Graphs",
+                                           uiOutput("contr_UI",inline = TRUE)
+                                           #ggiraph::girafeOutput("contr_graph", height = NULL)
+                                  )
+                           ) 
+                           
+                    ),
+                    column(3,
+                           box(width = NULL,
+                               title = "Customise tables and graphs",
+                               collapsed = TRUE,
+                               collapsible = TRUE,
+                               fluidRow(
+                                 column(width = 3,
+                                        numericInput("contr_digitsExp", "Digits exposure",
+                                                     value = 1, min = 0, max = 10, step = 1)
+                                        
+                                 ),
+                                 column(width = 3,
+                                        numericInput("contr_digitsPct", "Digits percent",
+                                                     value = 2, min = 0, max = 10, step = 1)
+                                 ),
+                                 column(width =  6,
+                                        # sliderInput(
+                                        #   inputId = "contr_filter",
+                                        #   value = 1,
+                                        #   label ="Show contribution greater than..",
+                                        #   min  = 0, max = 50,
+                                        #   post = "%"
+                                        # )
+                                        shinyWidgets::radioGroupButtons(
+                                          inputId = "contr_filter",
+                                          choices = c("1%" =1, "5%"  =  5, "10%" =  10),
+                                          label ="Show contribution greater than..",
+                                          selected = 1
+                                        )
+                                 ),
+                                 column(width =  6,
+                                        sliderInput(
+                                          inputId = "contr_height",
+                                          value = 800,
+                                          min  = 500, max = 1200,
+                                          label ="Graph height",
+                                          step = 50,
+                                          post = "px"
+                                        )
+                                 )
+                               ) #fluidRow
+                           )
+                    )#column 3
+                    
+                    
+                    
+                    
                   )
                   
                   
                   
                   
-                )
-                
-
-
-                
-                ),
+          ),
           
           
           
@@ -328,7 +352,7 @@ app_ui <- function(request) {
           tabItem(tabName = "foodex1",
                   h3("The FoodEx1 food classification system"),
                   box(DT::DTOutput("foodex.1"),width = 12)
-                  )
+          )
         )
       )
     )
@@ -352,7 +376,7 @@ golem_add_external_resources <- function(){
   add_resource_path(
     'www', app_sys('app/www')
   )
- 
+  
   tags$head(
     favicon(),
     bundle_resources(

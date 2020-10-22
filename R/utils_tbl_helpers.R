@@ -98,6 +98,7 @@ exposure_summary <- list(
 )
 
 
+#' Get a tibble of weighted summary statistics
 summarise_weighted <- function(data){
   
   # Note the ref_value  
@@ -109,17 +110,19 @@ summarise_weighted <- function(data){
       Max         = max(exposure, na.rm = TRUE),
       Mean        = Hmisc::wtd.mean(exposure, wcoeff),
       SD          = sqrt(Hmisc::wtd.var(exposure, wcoeff)),
-      #SE          = wtd.std*sqrt(sum(wcoeff))/sum(wcoeff),
-      #wtd.Q1      = Hmisc::wtd.quantile(exposure, wcoeff, probs = 0.25),
+      #  For SE see the discussion 
+      #R https://stats.stackexchange.com/questions/25895/computing-standard-error-in-weighted-mean-estimation
+      
+      #SE         = wtd.std*sqrt(sum(wcoeff))/sum(wcoeff),
+      P25         = Hmisc::wtd.quantile(exposure, wcoeff, probs = 0.25),
       Median      = Hmisc::wtd.quantile(exposure, wcoeff, probs = 0.50),
       P75         = Hmisc::wtd.quantile(exposure, wcoeff, probs = 0.75),
       P95         = Hmisc::wtd.quantile(exposure, wcoeff, probs = 0.95),
       # % above reference value
-      "%over"  = sum(wcoeff[exposure>ref_value])/sum(wcoeff)
+      pctOver     = sum(wcoeff[exposure>ref_value])/sum(wcoeff)
     )
   
 }
-
 
 # Global values ####
 
@@ -166,7 +169,7 @@ tbl_subjects <-
 tbl_exposure <- 
   sample_consumption %>% 
   dplyr::group_by(
-    subjectid, 
+    subjectid
   ) %>% 
   dplyr::summarise(
     nday_lb = sum(wcoeff_adjusted_refined_exposure_lb, na.rm = TRUE),
@@ -187,6 +190,66 @@ tbl_exposure <-
   dplyr::ungroup()
 
 
+
+range_exp <- range(tbl_exposure$subExp_MB)
+
+bins <- 10
+
+binsize <- diff(range_exp)/bins
+
+breaks = seq(from = range_exp[1], to = range_exp[2], by =  binsize)
+
+
+
+p <- 
+tbl_exposure %>% 
+  #ggplot(aes(.data[[var_to_use]]))+
+  ggplot(aes(subExp_MB))+
+  geom_histogram(
+    
+    position = "identity"
+    , colour= "grey90"
+    , alpha  = 0.3
+    , boundary = 0
+    , bins = bins
+    , breaks = breaks
+    , aes(y= ..count../sum(..count..))
+                 )+
+  stat_bin(
+           position = "identity"
+           , bins = bins
+           , breaks = breaks,geom= "text", 
+           aes(label = percent(..count../ sum(..count..),
+                               accuracy = 0.1
+                               ),
+               y = ..count../sum(..count..)
+               )
+           , vjust = -0.5
+           )+
+  scale_x_continuous(breaks = breaks, labels = round(breaks, 3))+
+  scale_y_continuous(labels = percent)+
+  geom_vline(xintercept = 0.98)+
+  #theme_bw()+
+  theme(
+    panel.grid.minor.x = element_blank()
+  )+
+  NULL
+
+tbl_exposure %>% 
+  pdf_exposure(
+    "subExp_MB",
+    10, 
+    accuracy = 1/10^0
+  )
+
+p
+
+q <- ggplot_build(p)
+
+q$data
+
+
+
 tbl_exposure_stats <- 
   tbl_exposure %>% 
   tidyr::pivot_longer(
@@ -194,13 +257,26 @@ tbl_exposure_stats <-
     names_to = "scenario",
     values_to = "exposure"
   ) %>% 
-  dplyr::group_by(scenario,  gender) %>% 
+  dplyr::group_by(scenario,  area) %>% 
   summarise_weighted() %>% 
   # summarise(
   #   across(exposure, exposure_summary,.names = "{.fn}")
   # ) %>%
-  
+  ungroup() %>% 
   {.}
+
+tbl_exposure_stats %>% 
+  dplyr::mutate(
+    scenario = stringr::str_remove(scenario, "subExp_")
+  ) %>% 
+  dplyr::filter(scenario == "MB") %>% 
+  dplyr::select(-scenario) %>% 
+  # tidyr::gather(key, value, -area) %>% 
+  # tidyr::pivot_wider(names_from = area, values_from = value) %>% 
+  mutate(
+    pctOver = glue::glue("{round(pctOver*100, 1)}%")
+  )
+  
 
 # 
 # 
@@ -381,8 +457,5 @@ p
 ggiraph::girafe(ggobj = p)
 
 
-
-facet_wrap(~ FOODEX_L1_DESC, scales = "free_y")
-  
 
 

@@ -12,7 +12,11 @@ app_server <- function( input, output, session ) {
   callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_1")
   callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_2")
   
-  
+  ggplot2::theme_set(ggthemes::theme_clean(base_size = 13)+
+                       theme(
+                         plot.background = element_blank()
+                       )
+                     )
   
   # Reactive Values ####
   rv <- rv(
@@ -34,7 +38,13 @@ app_server <- function( input, output, session ) {
   
   
   #  Exposure Statistics ####
-  output$tbl_exposure_stats <- renderTable({
+  
+
+  tbl_exposure_stats <- reactive({
+    
+    req(input$digits_exposure)
+    
+    digits  <- input$digits_exposure
     
     tbl_exposure %>% 
       tidyr::pivot_longer(
@@ -44,7 +54,6 @@ app_server <- function( input, output, session ) {
       ) %>% 
       dplyr::group_by(scenario) %>% 
       summarise_weighted() %>% 
-      # stats on the left
       tidyr::gather(key, value, - scenario) %>%
       tidyr::pivot_wider(names_from = scenario, values_from = value) %>% 
       {.} %>% 
@@ -54,11 +63,24 @@ app_server <- function( input, output, session ) {
       ) %>% 
       data.frame(row.names = "key")
     
-  },rownames = TRUE)
+  })
+  
+  
+  output$tbl_exposure_stats <- renderTable({
+    
+    tbl_exposure_stats()
+  },rownames = TRUE,digits = function() input$digits_exposure)
     
   
   
   tbl_exposure_statsDemo <- reactive({
+    
+    
+    req(input$slct_scenario_exposureDemo,
+        input$slct_demo
+        )
+    
+    pct.digits <- input$pct.digits_exposureDemo
     
     tbl_exposure %>% 
       tidyr::pivot_longer(
@@ -76,15 +98,19 @@ app_server <- function( input, output, session ) {
       dplyr::mutate(
         scenario = stringr::str_remove(scenario, "subExp_")
       ) %>% 
-      dplyr::filter(scenario == input$slct_scenario_Demo) %>% 
-      dplyr::select(-scenario) 
+      dplyr::filter(scenario == input$slct_scenario_exposureDemo) %>% 
+      dplyr::select(-scenario) %>% 
+      mutate(
+        pctOver = glue::glue("{round(pctOver*100, pct.digits)}%")
+      )
+    
   })
   
   # Kable  is HTML
   # https://cran.r-project.org/web/packages/kableExtra/vignettes/use_kable_in_shiny.html
   output$tbl_exposure_statsDemo <- function(){
 
-    digits = 3
+    digits = input$digits_exposureDemo
     caption  = rv$title_statsDemo
 
     tbl_exposure_statsDemo() %>%
@@ -95,16 +121,6 @@ app_server <- function( input, output, session ) {
   
   
   # Other ####
-  
-  
-  # output$substance_info <- renderTable({
-  #   
-  #   #shinipsum::random_DT(10,4)
-  #   
-  #   sub_info
-  #   
-  # }, rownames = TRUE, colnames = FALSE)
-  
   
   
   output$substance_info <- renderTable({sub_info}, rownames = TRUE, colnames = FALSE,  width = "50px")
@@ -162,62 +178,69 @@ app_server <- function( input, output, session ) {
   
   exposure_pdf <- reactive({
     
-    ref_value <- isolate(rv$ref_value)
-    scenario <- input$slct_scenario
+    req(input$slct_scenario_exposure)
+    
+    ref_value  <- isolate(rv$ref_value)
+    scenario   <- input$slct_scenario_exposure
     
     var_to_use <- paste0("subExp_",scenario)
-    title <- glue::glue("Probability distribution of exposure at the {scenario} scenario")
-    x_label <- rv$x_label
-    y_label <- rv$y_label
+    title      <- glue::glue("Probability distribution of exposure at the {scenario} scenario")
+    x_label    <- rv$x_label
+    y_label    <- rv$y_label
     
-    n.breaks <- input$n.breaks
+    n.breaks   <- input$n.breaks
+    digits     <- input$digits_exposure
+    accuracy   <- 1/(10^input$pct.digits_exposure)
     
-    # req(n.breaks >=  globals$min.n.breaks,
-    #     n.breaks <=  globals$max.n.breaks
-    #     )
+    add_stats  <- input$show_stats_exposure
     
     validate(
       need(n.breaks>globals$min.n.breaks && n.breaks <=  globals$max.n.breaks, 
            glue::glue(
-             "# of breaks should be:
-             >=  {globals$min.n.breaks} and <= {globals$max.n.breaks}"
+             "# of breaks should be:>=  {globals$min.n.breaks} and <= {globals$max.n.breaks}"
              )
            )
       )
     
-    tbl_exposure %>% 
-      ggplot(aes(.data[[var_to_use]]))+
-      geom_bar(aes(y =..prop..))+
-      geom_text(aes( label = scales::percent(..prop..,  accuracy = 0.1 ),
-                     y= ..prop.. ), stat= "count", vjust = -.5) +
-      scale_x_binned(nice.breaks = input$nice_breaks, n.breaks = n.breaks )+
-      scale_y_continuous(labels = scales::percent)+
-      geom_vline(aes(xintercept=median(.data$subExp_MB),
-                     color="median"), linetype="dashed",
-                 size=1) +
-      geom_vline(aes(xintercept=mean(.data$subExp_MB),
-                     color="mean"), linetype="dotted",
-                 size=1) +
-      geom_vline(aes(xintercept=ref_value,
-                     color="Reference_value"), linetype="dotted",
-                 size=1) +
-      scale_color_manual(name = "statistics", values = c(median = "blue", mean = "red"
-                                                         , Reference_value = "black"
-                                                         )
-                         )+
-      labs(
-        title = title,
-        x= x_label,
-        y = y_label
-      )+
-      NULL
+    exp_plot <- pdf_exposure(tbl_exposure,
+                              var_exp = var_to_use,
+                              bins  = n.breaks +1,
+                              digits = digits,
+                              accuracy = accuracy
+                              )
     
+    if(add_stats){
+      exp_plot <- 
+        exp_plot+
+        geom_vline(aes(xintercept=median(.data[[var_to_use]], na.rm = TRUE),
+                       color="Median exposure"), linetype="dashed",
+                   size=1) +
+        geom_vline(aes(xintercept=mean(.data[[var_to_use]], na.rm = TRUE),
+                       color="Mean exposure"), linetype="dotted",
+                   size=1) +
+        geom_vline(aes(xintercept=ref_value,
+                       color="Reference value"), linetype="dotted",
+                   size=1) +
+        scale_color_manual(name = "Statistics", values = c('Median exposure' = "blue", 
+                                                           'Mean exposure' = "red"
+                                                           , 'Reference value' = "black"
+        )
+        )
+    }
     
+    # Add the labs
+    
+    exp_plot +
+        labs(
+          title = title,
+          x     = x_label,
+          y     = y_label
+        )+
+        NULL
+      
   })
   
   output$exposure_pdf <- renderPlot({
-    
-    #shinipsum::random_ggplot(type = "histogram")
     
     exposure_pdf()
     
@@ -228,22 +251,33 @@ app_server <- function( input, output, session ) {
     
     ref_value <- isolate(rv$ref_value)
     
-    scenario <- input$slct_scenario
+    scenario <- input$slct_scenario_exposure
     var_to_use <- paste0("subExp_",scenario)
-    #title <- paste0("Cummulative distribution at the ", scenario, "scenario")
+
     title <- glue::glue("Cummulative distribution of exposure at the {scenario} scenario")
     x_label <- rv$x_label
     y_label <- rv$y_label
     
     
-    tbl_exposure %>% 
-      ggplot(aes(.data[[var_to_use]]))+
-      stat_ecdf(pad = FALSE)+
-      scale_y_continuous(labels = scales::percent)+
-      geom_vline(xintercept = ref_value, linetype = "dashed" )+
-      annotate("text", x = ref_value+0.05*ref_value, y = 0.51,
-               hjust = 0, label= paste0("Reference: ",ref_value, "μg/Kw b.w.")
-               )+
+    # tbl_exposure %>% 
+    #   ggplot(aes(.data[[var_to_use]]))+
+    #   stat_ecdf(pad = FALSE)+
+    #   scale_y_continuous(labels = scales::percent)+
+    #   geom_vline(xintercept = ref_value, linetype = "dashed" )+
+    #   annotate("text", x = ref_value+0.05*ref_value, y = 0.51,
+    #            hjust = 0, label= paste0("Reference: ",ref_value, "μg/Kw b.w.")
+    #            )+
+    #   labs(
+    #     title = title,
+    #     x  = x_label,
+    #     y = y_label
+    #   )+
+    #   NULL
+    
+    cdf_exposure(tbl_exposure,
+                 var_exp = var_to_use,
+                 ref_value = ref_value
+                 )+
       labs(
         title = title,
         x  = x_label,
@@ -251,26 +285,123 @@ app_server <- function( input, output, session ) {
       )+
       NULL
     
-    
-    
   })
   
   output$exposure_cdf <- renderPlot({
     
-    #shinipsum::random_ggplot(type = "line")
     exposure_cdf()
   })
 
   
+  exposure_pdfDemo <-reactive({
+    
+    # A Ridgline plot
+    
+    req(input$slct_scenario_exposureDemo,
+        input$slct_demo,
+        input$bandwidthDemo>0
+        )
+    
+    
+    ref_value  <- isolate(rv$ref_value)
+    scenario   <- input$slct_scenario_exposureDemo
+    
+    var_to_use <- paste0("subExp_",scenario)
+    var_group  <- input$slct_demo
+    
+    title      <- glue::glue("Density distribution of exposure at the {scenario} scenario")
+    x_label    <- rv$x_label
+    y_label    <- rv$y_label
+    
+    digits     <- input$digits_exposureDemo
+    pct.digits <- input$pct.digits_exposureDemo
+    bandwidth  <- input$bandwidthDemo
+    #add_stats  <- input$show_stats_exposureDemo
+    
+    # validate(
+    #   need(n.breaks>globals$min.n.breaks && n.breaks <=  globals$max.n.breaks, 
+    #        glue::glue(
+    #          "# of breaks should be:>=  {globals$min.n.breaks} and <= {globals$max.n.breaks}"
+    #        )
+    #   )
+    # )
+
+    exp_plot <- pdf_exposureDemo(tbl_exposure,
+                                 var_exp = var_to_use,
+                                 var_group =  var_group,
+                                 bandwith  = bandwidth,
+                                 scale = 1.1,
+                                 ref_value= ref_value
+    )
+    
+    # if(add_stats){
+    #   exp_plot <- 
+    #     exp_plot+
+    #     geom_vline(aes(xintercept=median(.data[[var_to_use]], na.rm = TRUE),
+    #                    color="Median exposure"), linetype="dashed",
+    #                size=1) +
+    #     geom_vline(aes(xintercept=mean(.data[[var_to_use]], na.rm = TRUE),
+    #                    color="Mean exposure"), linetype="dotted",
+    #                size=1) +
+    #     geom_vline(aes(xintercept=ref_value,
+    #                    color="Reference value"), linetype="dotted",
+    #                size=1) +
+    #     scale_color_manual(name = "Statistics", values = c('Median exposure' = "blue", 
+    #                                                        'Mean exposure' = "red"
+    #                                                        , 'Reference value' = "black"
+    #     )
+    #     )
+    # }
+    
+    # Add the labs
+    
+    exp_plot +
+      labs(
+        title = title,
+        x     = "",
+        y     = y_label
+      )+
+      NULL
+    
+  })
+  
+  
+  
   output$exposure_pdfDemo <- renderPlot({
     
-    shinipsum::random_ggplot(type = "histogram")
+    exposure_pdfDemo()
+  })
+  
+  exposure_cdfDemo <- reactive({
+    
+    ref_value <- isolate(rv$ref_value)
+    
+    scenario <- input$slct_scenario_exposure
+    var_to_use <- paste0("subExp_",scenario)
+    var_group <- input$slct_demo
+    
+    title <- glue::glue("Cummulative distribution of exposure at the {scenario} scenario")
+    x_label <- rv$x_label
+    y_label <- rv$y_label
+    
+    cdf_exposure(tbl_exposure,
+                 var_exp = var_to_use,
+                 var_group = var_group,
+                 ref_value = ref_value
+    )+
+      labs(
+        title = title,
+        x  = x_label,
+        y = y_label
+      )+
+      NULL
+    
   })
   
   output$exposure_cdfDemo <- renderPlot({
     
-    shinipsum::random_ggplot(type = "line")
-
+    #shinipsum::random_ggplot(type = "line")
+    exposure_cdfDemo()
       })
   
   
@@ -491,22 +622,39 @@ app_server <- function( input, output, session ) {
   
   
   observeEvent({input$slct_demo
-                input$slct_scenario_Demo}
+                input$slct_scenario_exposureDemo}
                , 
                {
+                 # Change title
+                 
                  rv$title_statsDemo <- 
                    paste0("Exposure estimates by ", 
                           rv$demo[input$slct_demo],
                           " at the ",
-                          input$slct_scenario_Demo,
+                          input$slct_scenario_exposureDemo,
                           " scenario"
                           )
+                 
+                 # Estimate bandwidth and range
+                 
+                 bw <- calc_bandwidth(tbl_exposure,
+                                      target  = paste0("subExp_", input$slct_scenario_exposureDemo),
+                                      group   = input$slct_demo
+                                      )
+                 
+                 updateSliderInput(session,"bandwidthDemo", 
+                                   value  = bw[["mean"]],
+                                   min = round(bw[["low"]], 3),
+                                   max = round(bw[["high"]], 3)
+                                   )
+                 
                }
   )
   
-  output$title_statsDemo <- renderText(
-    rv$title_statsDemo
-  )
+  # output$title_statsDemo <- renderText(
+  #   rv$title_statsDemo
+  # )
+  # 
   
   
   #Sample Data ####

@@ -33,7 +33,9 @@ usethis::use_package("scales")
 usethis::use_package("glue")
 usethis::use_package("reactable")
 usethis::use_package("ggiraph")
+usethis::use_package("ggridges")
 
+# usethis::use_package("ggthemes")
 usethis::use_pipe()
 
 
@@ -60,7 +62,7 @@ golem::add_css_file( "custom" )
 
 ## Add internal datasets ----
 ## If you have data in your package
-usethis::use_data_raw( name = "my_dataset", open = FALSE ) 
+usethis::use_data_raw( name = "internal_data", open = FALSE ) 
 
 usethis::use_data(sample_consumption, foodex.1, internal = TRUE, overwrite = TRUE )
 
