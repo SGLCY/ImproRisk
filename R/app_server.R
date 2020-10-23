@@ -5,19 +5,21 @@
 #' @import shiny
 #' @import dplyr
 #' @import ggplot2
-#' @importFrom reactable colDef  colFormat
+#' @importFrom reactable colDef colFormat
+#' @importFrom forcats fct_rev fct_inorder fct_reorder fct_infreq fct_inseq
 #' @noRd
 app_server <- function( input, output, session ) {
   # List the first level callModules here
   callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_1")
   callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_2")
   
-  ggplot2::theme_set(ggthemes::theme_clean(base_size = 13)+
+  ggplot2::theme_set(ggthemes::theme_clean(base_size = 15)+
                        theme(
                          plot.background = element_blank(),
-                         legend.background = element_blank()
+                         legend.background = element_blank(),
+                         axis.text = element_text(size= 14)
                        )
-                     )
+  )
   
   # Reactive Values ####
   rv <- rv(
@@ -40,7 +42,7 @@ app_server <- function( input, output, session ) {
   
   #  Exposure Statistics ####
   
-
+  
   tbl_exposure_stats <- reactive({
     
     req(input$digits_exposure)
@@ -71,7 +73,7 @@ app_server <- function( input, output, session ) {
     
     tbl_exposure_stats()
   },rownames = TRUE,digits = function() input$digits_exposure)
-    
+  
   
   
   tbl_exposure_statsDemo <- reactive({
@@ -79,7 +81,7 @@ app_server <- function( input, output, session ) {
     
     req(input$slct_scenario_exposureDemo,
         input$slct_demo
-        )
+    )
     
     pct.digits <- input$pct.digits_exposureDemo
     
@@ -110,14 +112,14 @@ app_server <- function( input, output, session ) {
   # Kable  is HTML
   # https://cran.r-project.org/web/packages/kableExtra/vignettes/use_kable_in_shiny.html
   output$tbl_exposure_statsDemo <- function(){
-
+    
     digits = input$digits_exposureDemo
     caption  = rv$title_statsDemo
-
+    
     tbl_exposure_statsDemo() %>%
       knitr::kable("html", caption = caption,digits = digits ) %>%
       kableExtra::kable_styling("striped")
-
+    
   }
   
   
@@ -161,7 +163,7 @@ app_server <- function( input, output, session ) {
         
         renderUI({slct_scenario(x, choices = scenarios)}) 
     }
-
+    
   )
   
   
@@ -199,16 +201,16 @@ app_server <- function( input, output, session ) {
       need(n.breaks>globals$min.n.breaks && n.breaks <=  globals$max.n.breaks, 
            glue::glue(
              "# of breaks should be:>=  {globals$min.n.breaks} and <= {globals$max.n.breaks}"
-             )
            )
       )
+    )
     
     exp_plot <- pdf_exposure(tbl_exposure,
-                              var_exp = var_to_use,
-                              bins  = n.breaks +1,
-                              digits = digits,
-                              accuracy = accuracy
-                              )
+                             var_exp = var_to_use,
+                             bins  = n.breaks +1,
+                             digits = digits,
+                             accuracy = accuracy
+    )
     
     if(add_stats){
       exp_plot <- 
@@ -232,13 +234,13 @@ app_server <- function( input, output, session ) {
     # Add the labs
     
     exp_plot +
-        labs(
-          title = title,
-          x     = x_label,
-          y     = y_label
-        )+
-        NULL
-      
+      labs(
+        title = title,
+        x     = x_label,
+        y     = y_label
+      )+
+      NULL
+    
   })
   
   output$exposure_pdf <- renderPlot({
@@ -254,7 +256,7 @@ app_server <- function( input, output, session ) {
     
     scenario <- input$slct_scenario_exposure
     var_to_use <- paste0("subExp_",scenario)
-
+    
     title <- glue::glue("Cummulative distribution of exposure at the {scenario} scenario")
     x_label <- rv$x_label
     y_label <- rv$y_label
@@ -278,7 +280,7 @@ app_server <- function( input, output, session ) {
     cdf_exposure(tbl_exposure,
                  var_exp = var_to_use,
                  ref_value = ref_value
-                 )+
+    )+
       labs(
         title = title,
         x  = x_label,
@@ -292,7 +294,7 @@ app_server <- function( input, output, session ) {
     
     exposure_cdf()
   })
-
+  
   
   exposure_pdfDemo <-reactive({
     
@@ -301,7 +303,7 @@ app_server <- function( input, output, session ) {
     req(input$slct_scenario_exposureDemo,
         input$slct_demo,
         input$bandwidthDemo>0
-        )
+    )
     
     
     ref_value  <- isolate(rv$ref_value)
@@ -326,7 +328,7 @@ app_server <- function( input, output, session ) {
     #        )
     #   )
     # )
-
+    
     exp_plot <- pdf_exposureDemo(tbl_exposure,
                                  var_exp = var_to_use,
                                  var_group =  var_group,
@@ -402,7 +404,7 @@ app_server <- function( input, output, session ) {
     
     #shinipsum::random_ggplot(type = "line")
     exposure_cdfDemo()
-      })
+  })
   
   
   
@@ -413,8 +415,8 @@ app_server <- function( input, output, session ) {
     req(input$slct_food_levelConsumption)
     
     level_var <- input$slct_food_levelConsumption
-
-        #level_var <- fdx1_levels_cons[[food_level]]
+    
+    #level_var <- fdx1_levels_cons[[food_level]]
     
     aggr_consumption_by_group(sample_consumption, level_var)
     
@@ -426,54 +428,165 @@ app_server <- function( input, output, session ) {
     tbl_aggr_consumption()
   })
   
+  
+  plot_aggr_consumption <- reactive({
+    
+    
+    level_var <- input$slct_food_levelConsumption
+    
+    consumptionType <- input$slct_consumptionType
+    
+    # Graph peripherals
+    title <- glue::glue("Consumption Per Day per Person (grams) by food group")
+    
+    if(consumptionType  == "Both"){
+      subtitle =  "Top 20 food items"
+    } else {
+      subtitle <- glue::glue("Top 20 food items - {consumptionType} based\n")
+      
+    }
+    
+    # leave as is for consumers. to set the max y limit in plot.
+    max_consumption <- max(tbl_aggr_consumption()$consumer)
+    
+    
+    if(consumptionType  == "Both"){
+      
+      p <- 
+        tbl_aggr_consumption() %>% 
+        slice_max(n= 20, order_by = .data[["consumer"]]) %>% 
+        tidyr::gather(key, value, consumer, population) %>% 
+        ggplot(
+          aes(
+            x = forcats::fct_rev(forcats::fct_inorder(.data[[level_var]])), #, consumer), 
+            y = value,
+            fill = key
+          )
+        )+
+        geom_col(width = 0.8, position = position_dodge())+
+        geom_text(aes(label= round(value, 0))
+                  ,hjust = -0.5, colour= "grey10",
+                  position = position_dodge(width = 0.8)
+        )+
+        coord_flip(ylim = c(0, max_consumption*1.10))+
+        labs(
+          x = "",
+          y  = "grams",
+          title = title,
+          subtitle = subtitle,
+          fill = ""
+        )+
+        scale_y_continuous( expand = c(0,0.1))+
+        scale_x_discrete(labels = function(x) stringr::str_wrap(x, 50))+
+        scale_fill_brewer(type = "qual", palette = 2, 
+                          guide =  guide_legend(reverse = TRUE),
+                          labels = c(consumer = "Consumer based", 
+                                     population = "Population based"
+                                     )
+        )+
+        NULL
+      
+      
+    } else {
+      p <- 
+        tbl_aggr_consumption() %>%
+        slice_max(n = 20, order_by = .data[[consumptionType]]) %>%
+        ggplot(
+          aes(
+            x = forcats::fct_rev(forcats::fct_inorder(.data[[level_var]])),
+            y = .data[[consumptionType]]
+          )
+        )+
+        geom_col(width = 0.5, fill = impro_colours[2])+
+        geom_text(aes(label= round(.data[[consumptionType]], 0))
+                  ,hjust = 1.1
+                  , colour= "grey90"
+        )+
+        coord_flip(ylim = c(0, max_consumption*1.10))+
+        labs(
+          x = "",
+          y  = "grams",
+          title = title,
+          subtitle = subtitle
+        )+
+        scale_y_continuous( expand = c(0,0.01))+
+        scale_x_discrete(labels = function(x) stringr::str_wrap(x, 50))+
+        theme(
+          plot.caption = element_text(face = "italic", size = 5)
+        )
+    }
+    
+   
+    p
+    
+  })
+  
+  output$plot_aggr_consumption_UI <- renderUI({
+    
+    plotOutput({
+      "plot_aggr_consumption"
+    }
+    , height = 800
+    )
+    
+  })
+  
+  output$plot_aggr_consumption <- renderPlot({
+    
+    plot_aggr_consumption()
+    
+  })
+  
+  
+  
   # Contribution ####
   
   tbl_contribution <- reactive({
     
-      food_level <- fdx1_levels[[input$slct_level]]
+    food_level <- fdx1_levels[[input$slct_level]]
     
-      temp <- 
-        sample_consumption %>% 
-        rename(
-          FOODEX_L3_DESC = consumed_food_at_level_3,
-          FOODEX_L2_DESC = consumed_food_at_level_2,
-          FOODEX_L1_DESC = consumed_food_at_level_1
-        ) %>% 
-        rename_with(~scenarios, .cols = contains("refined_exposure")) %>% 
-        group_by(
-          across(all_of(food_level))
-        ) %>% 
-        summarise(
-          across(.cols= all_of(scenarios), .fns = ~sum(., na.rm = TRUE))
-        ) %>% 
-        ungroup() %>% 
-        full_join(
-          tbl_foodex_desc %>% 
-            distinct(
-              across(all_of(food_level))
-            )
-        ) %>% 
-        tidyr::gather(
-          "scenario", "exposure", all_of(scenarios)
-        ) %>% 
-        tidyr::replace_na(list(exposure = 0)) %>% 
-        # here i need the grouping to be onthe scenario levels
-        group_by(scenario) %>% 
-        mutate(
-          contribution = exposure/ sum(exposure, na.rm = TRUE)
-        ) 
-      
-      # Calculate the Within Percentage 
-      
-      tbl_contribution <- 
-        temp %>% 
-        group_by(scenario, .data[[dplyr::nth(food_level, -2,default = food_level)]]) %>% 
-        mutate(
-          contr_within = exposure/ sum(exposure, na.rm = TRUE)
-        ) %>% 
-        #  Set NAN 0/0 as NA. Need to show this in the table 
-        #mutate(contr_within = if_else(is.nan(contr_within), NA_real_, contr_within)) %>% 
-        ungroup()
+    temp <- 
+      sample_consumption %>% 
+      rename(
+        FOODEX_L3_DESC = consumed_food_at_level_3,
+        FOODEX_L2_DESC = consumed_food_at_level_2,
+        FOODEX_L1_DESC = consumed_food_at_level_1
+      ) %>% 
+      rename_with(~scenarios, .cols = contains("refined_exposure")) %>% 
+      group_by(
+        across(all_of(food_level))
+      ) %>% 
+      summarise(
+        across(.cols= all_of(scenarios), .fns = ~sum(., na.rm = TRUE))
+      ) %>% 
+      ungroup() %>% 
+      full_join(
+        tbl_foodex_desc %>% 
+          distinct(
+            across(all_of(food_level))
+          )
+      ) %>% 
+      tidyr::gather(
+        "scenario", "exposure", all_of(scenarios)
+      ) %>% 
+      tidyr::replace_na(list(exposure = 0)) %>% 
+      # here i need the grouping to be onthe scenario levels
+      group_by(scenario) %>% 
+      mutate(
+        contribution = exposure/ sum(exposure, na.rm = TRUE)
+      ) 
+    
+    # Calculate the Within Percentage 
+    
+    tbl_contribution <- 
+      temp %>% 
+      group_by(scenario, .data[[dplyr::nth(food_level, -2,default = food_level)]]) %>% 
+      mutate(
+        contr_within = exposure/ sum(exposure, na.rm = TRUE)
+      ) %>% 
+      #  Set NAN 0/0 as NA. Need to show this in the table 
+      #mutate(contr_within = if_else(is.nan(contr_within), NA_real_, contr_within)) %>% 
+      ungroup()
     
     tbl_contribution
     
@@ -489,7 +602,7 @@ app_server <- function( input, output, session ) {
         scenario == input$slct_scenario_contribution,
         contribution >= as.numeric(input$contr_filter)/100
       ) 
-  
+    
   })
   
   
@@ -620,14 +733,19 @@ app_server <- function( input, output, session ) {
       )+
       scale_y_continuous(labels = scales::percent, expand = c(0,0.001))+
       scale_x_discrete(labels = function(x) stringr::str_wrap(x, 30))+
-      theme_bw()+
       theme(
         axis.text = element_text(size = 7),
         #axis.title.y = element_text(hjust = 1, angle = 0 )
         plot.caption = element_text(face = "italic", size = 5)
       )
-        
+    
   })
+  
+  
+  # I dont output in the UI the below outtput binding.
+  # I  use renderUI (see below) 
+  # a)  to use the height argument from within the server
+  # b) using UI, the height of the tabBox expands as the graphs grows
   
   output$contr_graph <- ggiraph::renderGirafe({
     
@@ -648,33 +766,33 @@ app_server <- function( input, output, session ) {
   
   
   observeEvent({input$slct_demo
-                input$slct_scenario_exposureDemo}
-               , 
-               {
-                 # Change title
-                 
-                 rv$title_statsDemo <- 
-                   paste0("Exposure estimates by ", 
-                          rv$demo[input$slct_demo],
-                          " at the ",
-                          input$slct_scenario_exposureDemo,
-                          " scenario"
-                          )
-                 
-                 # Estimate bandwidth and range
-                 
-                 bw <- calc_bandwidth(tbl_exposure,
-                                      target  = paste0("subExp_", input$slct_scenario_exposureDemo),
-                                      group   = input$slct_demo
-                                      )
-                 
-                 updateSliderInput(session,"bandwidthDemo", 
-                                   value  = bw[["mean"]],
-                                   min = round(bw[["low"]], 3),
-                                   max = round(bw[["high"]], 3)
-                                   )
-                 
-               }
+    input$slct_scenario_exposureDemo}
+    , 
+    {
+      # Change title
+      
+      rv$title_statsDemo <- 
+        paste0("Exposure estimates by ", 
+               rv$demo[input$slct_demo],
+               " at the ",
+               input$slct_scenario_exposureDemo,
+               " scenario"
+        )
+      
+      # Estimate bandwidth and range
+      
+      bw <- calc_bandwidth(tbl_exposure,
+                           target  = paste0("subExp_", input$slct_scenario_exposureDemo),
+                           group   = input$slct_demo
+      )
+      
+      updateSliderInput(session,"bandwidthDemo", 
+                        value  = bw[["mean"]],
+                        min = round(bw[["low"]], 3),
+                        max = round(bw[["high"]], 3)
+      )
+      
+    }
   )
   
   # output$title_statsDemo <- renderText(

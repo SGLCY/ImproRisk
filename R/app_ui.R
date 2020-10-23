@@ -333,14 +333,36 @@ app_ui <- function(request) {
                     
                   ),
                   fluidRow(
-                    box(title = "Mean  Consumption", width = 10,
-                        tableOutput("tbl_aggr_consumption")
+                    column(width = 8,
+                           tabBox(id = "consumptionTabBox",width = NULL,
+                                  title= "",
+                                  tabPanel(title = "Table",
+                                           h2("Mean Consumption (grams)"),
+                                           tableOutput("tbl_aggr_consumption")
+                                  ),
+                                  tabPanel(title = "Graph",
+                                           uiOutput("plot_aggr_consumption_UI", inline = TRUE)
+                                  )
+                           )
+                           ),
+                    column(width = 4,
+                           
+                           box(title = "Graph options ",
+                               selectInput("slct_consumptionType",
+                                           "Select consumption type",
+                                           choices = c("Consumer based" = "consumer", 
+                                                       "Population based" =  "population",
+                                                       "Both"  = "Both"),
+                                           selected = "Consumer based"
+                                           ),
+                               collapsible = TRUE,
+                               collapsed = FALSE
+                               )
+                           )
+                    
+                        
                     )
                     
-                    
-                  )
-                  
-                  
           )
         )
       )

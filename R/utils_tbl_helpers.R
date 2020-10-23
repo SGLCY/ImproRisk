@@ -151,6 +151,12 @@ globals <- list(
   max.digits = 10
 )
 
+
+impro_colours <- c(
+  "#a6bddb",
+  "#756bb1"
+  
+)
 # Demo data ####
 
 
@@ -477,7 +483,8 @@ ggiraph::girafe(ggobj = p)
 cons_level <- fdx1_levels_cons[[1]]
 
 
-sample_consumption %>% 
+temp <- 
+  sample_consumption %>% 
   group_by(
     subjectid, .data[[cons_level]]
   ) %>% 
@@ -496,15 +503,87 @@ sample_consumption %>%
   summarise(
     consumers  = sum(consumed),
     #consumers = n_distinct(subjectid[ttl_cons!=0]),
-    population = sum(daily_cons *  wcoeff)/sum(wcoeff[ttl_cons !=0]),
-    sample     = sum(daily_cons *  wcoeff)/sum(wcoeff, na.rm = TRUE)
-  ) %>% 
-  rename_with(
-    # ugly function alert.. To get the name of the level
-    .fn = function(x) names(fdx1_levels_cons[match(x, fdx1_levels_cons)]) ,
-    .cols = .data[[cons_level]]
+    consumer    = sum(daily_cons *  wcoeff)/sum(wcoeff[ttl_cons !=0]),
+    population = sum(daily_cons *  wcoeff)/sum(wcoeff, na.rm = TRUE)
+  ) 
+# 
+#   rename_with(
+#     # ugly function alert.. To get the name of the level
+#     .fn = function(x) names(fdx1_levels_cons[match(x, fdx1_levels_cons)]) ,
+#     .cols = .data[[cons_level]]
+#   )
+
+temp 
+  
+
+plot <- 
+  temp %>% 
+  slice_max(n= 21, order_by = consumer) %>% 
+  ggplot(
+    aes(
+      x = forcats::fct_rev(forcats::fct_inorder(.data[[cons_level]])), #, consumer), 
+      y = consumer
+    )
+  )+
+  geom_col(width = 0.8, fill = "#756bb1")+
+  geom_text(aes(label= round(consumer, 0))
+            ,hjust = 1.1
+            , colour= "grey90"
+            )+
+  coord_flip()+
+  labs(
+    x = "",
+    y  = "grams",
+    title = "title",
+    subtitle = "subtitle"
+  )+
+  scale_y_continuous( expand = c(0,0.1))+
+  scale_x_discrete(labels = function(x) stringr::str_wrap(x, 60))+
+  theme(
+    plot.background = element_blank(),
+    legend.background = element_blank(),
+    axis.text = element_text(size= 14)
   )
 
+plot    
+
+
+temp %>% 
+  slice_max(n= 20, order_by = .data[["consumer"]]) %>% 
+  tidyr::gather(key, value, consumer, population) %>% 
+  ggplot(
+    aes(
+      x = forcats::fct_rev(forcats::fct_inorder(.data[[cons_level]])), #, consumer), 
+      y = value,
+      
+      fill = key
+    )
+  )+
+  geom_col(width = 0.8, position = position_dodge())+
+  geom_text(aes(label= round(value, 0))
+            ,hjust = -0.5, colour= "grey10",
+            position = position_dodge(width = 0.8)
+  )+
+  coord_flip()+
+  labs(
+    x = "",
+    y  = "grams",
+    title = "title",
+    subtitle = "subtitle"
+  )+
+  scale_y_continuous( expand = c(0,0.1))+
+  scale_x_discrete(labels = function(x) stringr::str_wrap(x, 50))+
+  scale_fill_brewer(type = "qual", palette = 2, 
+                    guide =  guide_legend(reverse = TRUE),
+                    labels = c(consumer = "Consumer based", population = "Population based")
+                    )+
+  theme(
+    plot.background = element_blank(),
+    legend.background = element_blank(),
+    axis.text = element_text(size= 14)
+  )+
+  #guides(fill = guide_legend(reverse = TRUE) )+
+  NULL
 
 
 

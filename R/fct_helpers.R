@@ -173,7 +173,7 @@ pdf_exposureDemo <- function(data,
     ggplot(
       aes(y = .data[[var_group]], x = .data[[var_exp]])
     )+
-    ggridges::geom_density_ridges(fill = "#a6bddb",
+    ggridges::geom_density_ridges(fill = impro_colours[1],
                                   bandwidth =  bandwith, 
                                   stat="density_ridges", 
                                   scale =  scale,
@@ -275,8 +275,8 @@ aggr_consumption_by_group <- function(consumption, var){
     summarise(
       N  = sum(consumed), # number of consumers
       #consumers = n_distinct(subjectid[ttl_cons!=0]),
-      population = sum(daily_cons *  wcoeff)/sum(wcoeff[ttl_cons !=0]),
-      consumer     = sum(daily_cons *  wcoeff)/sum(wcoeff, na.rm = TRUE)
+      consumer     = sum(daily_cons *  wcoeff)/sum(wcoeff[ttl_cons !=0]),
+      population   = sum(daily_cons *  wcoeff)/sum(wcoeff, na.rm = TRUE)
     ) %>% 
     mutate_at(
       vars(population, consumer), ~  round(.,1)
@@ -286,10 +286,11 @@ aggr_consumption_by_group <- function(consumption, var){
       "Consumers [N(%)]" = glue::glue("{N} ({pct}}")
     ) %>% 
     select(-pct, -N) %>% 
-    rename(
-      "Population based (gr)" = population,
-      "Consumer based (gr)"   = consumer
-    )
+    # rename(
+    #   "Population based (gr)" = population,
+    #   "Consumer based (gr)"   = consumer
+    # ) %>% 
+    {.}
   
 }
  
