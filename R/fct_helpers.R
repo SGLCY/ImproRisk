@@ -241,3 +241,55 @@ pdf_exposureDemo2 <- function(data,
     NULL
   
 }
+
+# Mean Consumption ####
+#' Aggregate consumption data by food level
+#' @param consumption The table of consumption
+#' @param var String. The variable in the data for the food level. This is passed
+#' within the tbl_aggr_consumption() reactive. 
+#' @return A  tibble. Aggregated consumption by Food Level
+#' @details This function is called from the server to create the aggregated table. See tbl_aggr_consumption reactive()
+#' @noRd
+aggr_consumption_by_group <- function(consumption, var){
+  
+  
+  sample_size = nrow(tbl_subjects)
+    
+    
+  consumption %>% 
+    group_by(
+      subjectid, .data[[var]]
+    ) %>% 
+    summarise(
+      ttl_cons = sum(amountfood,  na.rm = TRUE)
+    ) %>% 
+    ungroup() %>% 
+    tidyr::complete(.data[[var]], subjectid, fill = list(ttl_cons =  0)) %>% 
+    left_join(
+      tbl_subjects
+    ) %>% 
+    mutate(daily_cons = ttl_cons/cons_days,
+           consumed   = if_else(ttl_cons != 0, 1, 0)
+    ) %>% 
+    group_by(.data[[var]]) %>% 
+    summarise(
+      N  = sum(consumed), # number of consumers
+      #consumers = n_distinct(subjectid[ttl_cons!=0]),
+      population = sum(daily_cons *  wcoeff)/sum(wcoeff[ttl_cons !=0]),
+      consumer     = sum(daily_cons *  wcoeff)/sum(wcoeff, na.rm = TRUE)
+    ) %>% 
+    mutate_at(
+      vars(population, consumer), ~  round(.,1)
+    ) %>% 
+    mutate(
+      pct = percent(N/sample_size,accuracy = 0.1),
+      "Consumers [N(%)]" = glue::glue("{N} ({pct}}")
+    ) %>% 
+    select(-pct, -N) %>% 
+    rename(
+      "Population based (gr)" = population,
+      "Consumer based (gr)"   = consumer
+    )
+  
+}
+ 

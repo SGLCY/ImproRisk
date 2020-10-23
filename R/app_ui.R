@@ -26,7 +26,7 @@ app_ui <- function(request) {
                    menuSubItem("Level 3", tabName = "occurrenceL3")
           ),
           menuItem("FoodEx1", tabName = "foodex1", icon = icon("th")),
-          menuItem("Mean Consumption", tabName = "meanConsumption", icon = icon("th")),
+          menuItem("Consumption", tabName = "consumption", icon = icon("th")),
           menuItem("Tables", tabName = "tables", icon = icon("th")),
           menuItem("INFO", tabName = "info", icon = icon("th"))
           #tableOutput("substance_info")
@@ -42,7 +42,7 @@ app_ui <- function(request) {
                   h3("Explore exposure"),
                   fluidRow(
                     box(title= "Substance Info"#, tableOutput("subInfo_exposure")
-                        )
+                    )
                     #box(title = "fff", mod_showSubstanceInfo_ui("showSubstanceInfo_ui_1"))
                     
                   ),
@@ -72,12 +72,12 @@ app_ui <- function(request) {
                                                      label = "Number of breaks"
                                         ),
                                         sliderInput("pct.digits_exposure",
-                                                     value = 1,
-                                                     min = 0,
-                                                     max = 3,
-                                                     step = 1,
-                                                     ticks = TRUE,
-                                                     label = "% decimals"
+                                                    value = 1,
+                                                    min = 0,
+                                                    max = 3,
+                                                    step = 1,
+                                                    ticks = TRUE,
+                                                    label = "% decimals"
                                         ),
                                         # shinyWidgets::noUiSliderInput(
                                         #   "pct.digits_exposure",
@@ -104,7 +104,7 @@ app_ui <- function(request) {
                                                      value = 3, 
                                                      min = 1, max = 10, 
                                                      step = 1
-                                                     )
+                                        )
                                  )
                                  
                                )
@@ -158,7 +158,6 @@ app_ui <- function(request) {
                            box(
                              
                              tableOutput("tbl_exposure_statsDemo")
-                             #box("Substance Info", mod_showSubstanceInfo_ui("showSubstanceInfo_ui_2"))
                              ,width = NULL
                            )
                     )
@@ -187,7 +186,7 @@ app_ui <- function(request) {
                                            step = 0.01,
                                            round = -3 #3 decimals
                                            
-                                           )
+                               )
                            )
                     ),
                     column(7,
@@ -233,50 +232,12 @@ app_ui <- function(request) {
                     
                   ),
                   fluidRow(
-                    # column(4,
-                    # box(width = NULL,
-                    #     title = "Customise tables and Graphs",
-                    #     collapsed = TRUE,
-                    #     collapsible = TRUE,
-                    #     fluidRow(
-                    #       column(width = 3,
-                    #              numericInput("contr_digitsExp", "Digits exposure",
-                    #                           value = 1, min = 0, max = 10, step = 1)
-                    #              
-                    #       ),
-                    #       column(width = 3,
-                    #              numericInput("contr_digitsPct", "Digits percent",
-                    #                           value = 2, min = 0, max = 10, step = 1)
-                    #              ),
-                    #       column(width =  6,
-                    #              sliderInput(
-                    #                inputId = "contr_filter",
-                    #                value = 1,
-                    #                label ="Show contribution greater than..", 
-                    #                min  = 0, max = 50,
-                    #                post = "%"
-                    #              )                               
-                    #       ),
-                    #       column(width =  6,
-                    #              sliderInput(
-                    #                inputId = "contr_height",
-                    #                value = 800,
-                    #                min  = 500, max = 1200,
-                    #                label ="Graph height", 
-                    #                step = 50,
-                    #                post = "px"
-                    #              )                               
-                    #       )
-                    #     )
-                    # )
-                    # )
-                  ),
-                  fluidRow(
                     column(width = 9,
                            
                            tabBox(id = "contribution_panel",width = NULL, 
                                   title= "",
                                   tabPanel(title = "Table",
+                                           htmlOutput("contr_tbl_title"),
                                            reactable::reactableOutput("contribution")
                                   ),
                                   tabPanel(title = "Graphs",
@@ -349,17 +310,42 @@ app_ui <- function(request) {
                   #box("Substance Info", mod_showSubstanceInfo_ui("showSubstanceInfo_ui_2"))
                   
           ),
+          
+          # FOODEX1 TAB ####
           tabItem(tabName = "foodex1",
                   h3("The FoodEx1 food classification system"),
                   box(DT::DTOutput("foodex.1"),width = 12)
+          ),
+          
+          
+          # Consumption TAB  ####
+          tabItem(tabName = "consumption",
+                  h3("Consumption statistics"),
+                  tags$hr(style="border-color: black;"),
+                  fluidRow(
+                    box("Select food level", width = 2,
+                        selectInput("slct_food_levelConsumption",
+                                    label = "FoodEx1 Level",
+                                    choices = fdx1_levels_cons,
+                                    selected = "Level 1"
+                        )
+                    )
+                    
+                  ),
+                  fluidRow(
+                    box(title = "Mean  Consumption", width = 10,
+                        tableOutput("tbl_aggr_consumption")
+                    )
+                    
+                    
+                  )
+                  
+                  
           )
         )
       )
     )
     
-    # fluidPage(
-    #   h1("improrisk.shiny")
-    # )
   )
 }
 

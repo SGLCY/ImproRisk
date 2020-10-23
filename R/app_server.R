@@ -14,7 +14,8 @@ app_server <- function( input, output, session ) {
   
   ggplot2::theme_set(ggthemes::theme_clean(base_size = 13)+
                        theme(
-                         plot.background = element_blank()
+                         plot.background = element_blank(),
+                         legend.background = element_blank()
                        )
                      )
   
@@ -366,7 +367,6 @@ app_server <- function( input, output, session ) {
   })
   
   
-  
   output$exposure_pdfDemo <- renderPlot({
     
     exposure_pdfDemo()
@@ -376,7 +376,7 @@ app_server <- function( input, output, session ) {
     
     ref_value <- isolate(rv$ref_value)
     
-    scenario <- input$slct_scenario_exposure
+    scenario <- input$slct_scenario_exposureDemo
     var_to_use <- paste0("subExp_",scenario)
     var_group <- input$slct_demo
     
@@ -404,6 +404,27 @@ app_server <- function( input, output, session ) {
     exposure_cdfDemo()
       })
   
+  
+  
+  # Consumption ####
+  
+  tbl_aggr_consumption <- reactive({
+    
+    req(input$slct_food_levelConsumption)
+    
+    level_var <- input$slct_food_levelConsumption
+
+        #level_var <- fdx1_levels_cons[[food_level]]
+    
+    aggr_consumption_by_group(sample_consumption, level_var)
+    
+    
+  })
+  
+  output$tbl_aggr_consumption <- renderTable({
+    
+    tbl_aggr_consumption()
+  })
   
   # Contribution ####
   
@@ -472,18 +493,8 @@ app_server <- function( input, output, session ) {
   })
   
   
-  # output$contribution <- DT::renderDT({
-  #   
-  #   contribution_filtered() %>% 
-  #     DT::datatable(
-  #       extensions = 'RowGroup',
-  #       options = list(rowGroup = list(dataSrc  = 2))
-  #     )
-  #   
-  #   
-  # })
   
-  output$contribution <- reactable::renderReactable({
+  aggr_contribution <- reactive({
     
     food_level <- fdx1_levels[[input$slct_level]]
     
@@ -505,53 +516,68 @@ app_server <- function( input, output, session ) {
     
     contribution_filtered() %>% 
       reactable::reactable(
-              # in the Level 1 case
-              groupBy = nth(food_level, -2, default = food_level),
-              columns = list(
-                scenario = colDef(show = FALSE),
-                exposure = colDef(name = "Total exposure", 
-                                  aggregate = "sum",
-                                  format = colFormat(digits = input$contr_digitsExp),
-                                  filterable = FALSE
-                ),
-                contribution = colDef(name = "Contribution to Total exposure",aggregate = "sum",
-                                      format = colFormat(percent = TRUE, digits = input$contr_digitsPct),
-                                      filterable = FALSE,
-                                      defaultSortOrder = "desc"
-                                      
-                ),
-                contr_within = colDef(name = "Contribution within"
-                                      ,show = rv$show_contr
-                                      ,aggregate = "sum",
-                                      filterable = FALSE,
-                                      format = colFormat(percent = TRUE, digits =  input$contr_digitsPct)
-                ),
-                FOODEX_L1_DESC = colDef(show = rv$show_level1)
-              ),
-              #fullWidth = FALSE,
-              #width = 1000,
-              striped = TRUE,
-              bordered = TRUE,
-              highlight = TRUE,
-              #filterable = TRUE,
-              searchable = TRUE,
-              #minRows = 15,
-              defaultSorted = "contribution",
-              rowStyle = reactable::JS("function(rowInfo) {
+        # in the Level 1 case
+        groupBy = nth(food_level, -2, default = food_level),
+        columns = list(
+          scenario = colDef(show = FALSE),
+          exposure = colDef(name = "Total exposure", 
+                            aggregate = "sum",
+                            format = colFormat(digits = input$contr_digitsExp),
+                            filterable = FALSE
+          ),
+          contribution = colDef(name = "Contribution to Total exposure",aggregate = "sum",
+                                format = colFormat(percent = TRUE, digits = input$contr_digitsPct),
+                                filterable = FALSE,
+                                defaultSortOrder = "desc"
+                                
+          ),
+          contr_within = colDef(name = "Contribution within"
+                                ,show = rv$show_contr
+                                ,aggregate = "sum",
+                                filterable = FALSE,
+                                format = colFormat(percent = TRUE, digits =  input$contr_digitsPct)
+          ),
+          FOODEX_L1_DESC = colDef(show = rv$show_level1)
+        ),
+        #fullWidth = FALSE,
+        #width = 1000,
+        striped = TRUE,
+        bordered = TRUE,
+        highlight = TRUE,
+        #filterable = TRUE,
+        searchable = TRUE,
+        #minRows = 15,
+        defaultSorted = "contribution",
+        rowStyle = reactable::JS("function(rowInfo) {
           if (rowInfo.aggregated   == true) {
           return {background: 'rgba(0,0,0,0.07', fontWeight: 'bold' }
           }
           }")
-              # Not working
-              # theme = reactableTheme(
-              #   rowGroupStyle = list(background= "rgba(0, 0, 0, 0.23)"
-              #                        ),
-              #   rowStyle = list(colour = "#008000")
-    )
+        # Not working
+        # theme = reactableTheme(
+        #   rowGroupStyle = list(background= "rgba(0, 0, 0, 0.23)"
+        #                        ),
+        #   rowStyle = list(colour = "#008000")
+      )
     
     
     
+  })
+  
+  
+  output$contribution <- reactable::renderReactable({
     
+    aggr_contribution()
+    
+  })
+  output$contr_tbl_title <- renderText({
+    
+    if(as.numeric(input$contr_filter)== 0) {
+      title <- ""
+    }else {
+      title <- glue::glue("<h2>Food items with greater than {isolate(input$contr_filter)}% contribution\n</h2>")
+    }
+    title
   })
   
   

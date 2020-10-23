@@ -18,6 +18,19 @@ fdx1_levels <- list(
 )
 
 
+# for mean  consumption
+# To be used in the `select Level`. The 'name' is what is shown to the 
+# user and the `value' is the name of the variable used to aggregate on
+fdx1_levels_cons <- c(
+  "Level 1" = "consumed_food_at_level_1",
+  "Level 2" = "consumed_food_at_level_2",
+  "Level 3" = "consumed_food_at_level_3",
+  "Level 4" = "foodex_l4_desc"
+  
+)
+
+
+
 tbl_unique_level3 <- 
   foodex.1 %>% 
   distinct(FOODEX_L3_DESC, FOODEX_L2_DESC, FOODEX_L1_DESC)
@@ -45,22 +58,22 @@ match("Cheese",  fdx1_l4)
 
 
 sub_info <- 
-# data.frame(
-#              ~Chemical.Substance, ~`Mercury.(Hg),.MERCURY`,
-#             "Substance Category",            "Contaminant",
-#   "Reference value (?g/Kg b.w.)",                   "4.00",
-#        "Type of Reference value",       "Tolerable Intake",
-#                           "Type",                 "WEEKLY"
-#   )
-data.frame(
-         stringsAsFactors = FALSE,
-              check.names = FALSE,
-         
-                       row.names = c("Chemical Substance", "Substance Category","Reference value (μg/Kg b.w.)",
-                                              "Type of Reference value","Frequency"),
-                  values = c("Mercury (Hg)","Contaminant",
-                                              "4.00","Tolerable Intake","WEEKLY")
-                )
+  # data.frame(
+  #              ~Chemical.Substance, ~`Mercury.(Hg),.MERCURY`,
+  #             "Substance Category",            "Contaminant",
+  #   "Reference value (?g/Kg b.w.)",                   "4.00",
+  #        "Type of Reference value",       "Tolerable Intake",
+  #                           "Type",                 "WEEKLY"
+  #   )
+  data.frame(
+    stringsAsFactors = FALSE,
+    check.names = FALSE,
+    
+    row.names = c("Chemical Substance", "Substance Category","Reference value (μg/Kg b.w.)",
+                  "Type of Reference value","Frequency"),
+    values = c("Mercury (Hg)","Contaminant",
+               "4.00","Tolerable Intake","WEEKLY")
+  )
 
 
 # tab menu items
@@ -68,19 +81,19 @@ data.frame(
 # see icons at http://fontawesome.io/icons/
 
 tab_items <- tibble::tribble(
-           ~tabTitle,          ~tabName, ~icon,
-          "Exposure",        "exposure",  "th",
+  ~tabTitle,          ~tabName, ~icon,
+  "Exposure",        "exposure",  "th",
   "Exposure by Demo",    "exposureDemo",  "th",
-      "Contribution",    "contribution",  "th",
-       "Update data",      "updateData",  "th",
-        "Occurrence",      "occurrence",  "th",
-           "Level 2",    "occurrenceL2",  "th",
-           "Level 3",    "occurrenceL3",  "th",
-           "Foodex1",         "foodex1",  "th",
-  "Mean Consumption", "meanConsumption",  "th",
-            "Tables",          "tables",  "th",
-              "Info",            "info",  "th"
-  )
+  "Contribution",    "contribution",  "th",
+  "Update data",      "updateData",  "th",
+  "Occurrence",      "occurrence",  "th",
+  "Level 2",    "occurrenceL2",  "th",
+  "Level 3",    "occurrenceL3",  "th",
+  "Foodex1",         "foodex1",  "th",
+  "Consumption",     "consumption",  "th",
+  "Tables",          "tables",  "th",
+  "Info",            "info",  "th"
+)
 
 
 # summary statistics for exposure
@@ -202,7 +215,7 @@ breaks = seq(from = range_exp[1], to = range_exp[2], by =  binsize)
 
 
 p <- 
-tbl_exposure %>% 
+  tbl_exposure %>% 
   #ggplot(aes(.data[[var_to_use]]))+
   ggplot(aes(subExp_MB))+
   geom_histogram(
@@ -214,18 +227,18 @@ tbl_exposure %>%
     , bins = bins
     , breaks = breaks
     , aes(y= ..count../sum(..count..))
-                 )+
+  )+
   stat_bin(
-           position = "identity"
-           , bins = bins
-           , breaks = breaks,geom= "text", 
-           aes(label = percent(..count../ sum(..count..),
-                               accuracy = 0.1
-                               ),
-               y = ..count../sum(..count..)
-               )
-           , vjust = -0.5
-           )+
+    position = "identity"
+    , bins = bins
+    , breaks = breaks,geom= "text", 
+    aes(label = percent(..count../ sum(..count..),
+                        accuracy = 0.1
+    ),
+    y = ..count../sum(..count..)
+    )
+    , vjust = -0.5
+  )+
   scale_x_continuous(breaks = breaks, labels = round(breaks, 3))+
   scale_y_continuous(labels = percent)+
   geom_vline(xintercept = 0.98)+
@@ -276,7 +289,7 @@ tbl_exposure_stats %>%
   mutate(
     pctOver = glue::glue("{round(pctOver*100, 1)}%")
   )
-  
+
 
 # 
 # 
@@ -296,7 +309,7 @@ food_level <- fdx1_levels[[2]]
 
 
 temp <- 
-sample_consumption %>% 
+  sample_consumption %>% 
   rename(
     FOODEX_L3_DESC = consumed_food_at_level_3,
     FOODEX_L2_DESC = consumed_food_at_level_2,
@@ -325,9 +338,9 @@ sample_consumption %>%
   mutate(
     contribution = exposure/ sum(exposure, na.rm = TRUE)
   ) 
-  
-  # Calculate the Within Percentage 
-  
+
+# Calculate the Within Percentage 
+
 tbl_contribution <- 
   temp %>% 
   group_by(scenario, .data[[dplyr::nth(food_level, -2,default = food_level)]]) %>% 
@@ -337,14 +350,14 @@ tbl_contribution <-
   #  Set NAN 0/0 as NA. Need to show this in the table 
   mutate(contr_within = if_else(is.nan(contr_within), NA_real_, contr_within)) %>% 
   ungroup()
-  
+
 tbl_contribution 
 
 # filter(FOODEX_L2_DESC == "Alcoholic mixed drinks")
-  # filter(contr_within>0) %>% 
-  #filter(scenario == "MB") 
-  #View()
-  
+# filter(contr_within>0) %>% 
+#filter(scenario == "MB") 
+#View()
+
 food_level
 
 
@@ -356,9 +369,9 @@ nth(c("a", "b", "c"), -4, default = "f")
 if(length(food_level) == 3) {
   show_level1 <- FALSE
   
-  } else{
-    show_level1 <- TRUE
-  }
+} else{
+  show_level1 <- TRUE
+}
 
 if(length(food_level) == 1) {
   show_contr <- FALSE
@@ -368,49 +381,49 @@ if(length(food_level) == 1) {
 }
 
 reactable::reactable(tbl_contribution %>% 
-            filter(scenario  == "MB") %>% 
-            #filter(FOODEX_L1_DESC == "Fish and other seafood (including amphibians, reptiles, snails and insects)") %>% 
-           # select(-FOODEX_L1_DESC) %>% 
-            {.}, 
-          # in the Level 1 case
-          groupBy = nth(food_level, -2, default = food_level),
-          columns = list(
-            scenario = colDef(show = FALSE),
-            exposure = colDef(name = "Total exposure (μg/Kg b.w)", 
-                              aggregate = "sum",
-                              format = colFormat(digits = 1),
-                              filterable = FALSE
-                              ),
-            contribution = colDef(name = "Contribution to Total exposure",aggregate = "sum",
-                                  format = colFormat(percent = TRUE, digits =  2),
-                                  filterable = FALSE
-                                  
-                                  ),
-            contr_within = colDef(name = "Contribution within"
-                                   ,show = show_contr
-                                  ,aggregate = "sum",
-                                  filterable = FALSE,
-                                  format = colFormat(percent = TRUE, digits =  2)
-            ),
-            FOODEX_L1_DESC = colDef(show = show_level1)
-          ),
-          striped = TRUE,
-          bordered = TRUE,
-          highlight = TRUE,
-          #filterable = TRUE,
-          searchable = TRUE,
-          rowStyle = reactable::JS("function(rowInfo) {
+                       filter(scenario  == "MB") %>% 
+                       #filter(FOODEX_L1_DESC == "Fish and other seafood (including amphibians, reptiles, snails and insects)") %>% 
+                       # select(-FOODEX_L1_DESC) %>% 
+                       {.}, 
+                     # in the Level 1 case
+                     groupBy = nth(food_level, -2, default = food_level),
+                     columns = list(
+                       scenario = colDef(show = FALSE),
+                       exposure = colDef(name = "Total exposure (μg/Kg b.w)", 
+                                         aggregate = "sum",
+                                         format = colFormat(digits = 1),
+                                         filterable = FALSE
+                       ),
+                       contribution = colDef(name = "Contribution to Total exposure",aggregate = "sum",
+                                             format = colFormat(percent = TRUE, digits =  2),
+                                             filterable = FALSE
+                                             
+                       ),
+                       contr_within = colDef(name = "Contribution within"
+                                             ,show = show_contr
+                                             ,aggregate = "sum",
+                                             filterable = FALSE,
+                                             format = colFormat(percent = TRUE, digits =  2)
+                       ),
+                       FOODEX_L1_DESC = colDef(show = show_level1)
+                     ),
+                     striped = TRUE,
+                     bordered = TRUE,
+                     highlight = TRUE,
+                     #filterable = TRUE,
+                     searchable = TRUE,
+                     rowStyle = reactable::JS("function(rowInfo) {
           if (rowInfo.aggregated   == true) {
           return {background: 'rgba(0,0,0,0.07', fontWeight: 'bold' }
           }
           }")
-          # Not working
-          # theme = reactableTheme(
-          #   rowGroupStyle = list(background= "rgba(0, 0, 0, 0.23)"
-          #                        ),
-          #   rowStyle = list(colour = "#008000")
-          )
-          
+                     # Not working
+                     # theme = reactableTheme(
+                     #   rowGroupStyle = list(background= "rgba(0, 0, 0, 0.23)"
+                     #                        ),
+                     #   rowStyle = list(colour = "#008000")
+)
+
 
 dplyr::nth(food_level, 2)
 
@@ -428,7 +441,7 @@ nth(food_level, -2, default = food_level)
 max(stringr::str_length(fdx1_l2))
 
 p <- 
-tbl_contribution %>% 
+  tbl_contribution %>% 
   filter(scenario == "MB") %>% 
   filter(contribution  != 0) %>% 
   filter(contribution > 0.001) %>% 
@@ -436,7 +449,7 @@ tbl_contribution %>%
   ggplot(
     aes(forcats::fct_reorder(FOODEX_L2_DESC, contribution), contribution, 
         tooltip = scales::percent(contribution,  accuracy = 0.1)
-        )
+    )
   )+
   ggiraph::geom_col_interactive(width = 0.5)+
   coord_flip()+
@@ -453,8 +466,50 @@ tbl_contribution %>%
   )
 
 p
-  
+
 ggiraph::girafe(ggobj = p)
+
+
+
+
+# Average Consumption ####
+
+cons_level <- fdx1_levels_cons[[1]]
+
+
+sample_consumption %>% 
+  group_by(
+    subjectid, .data[[cons_level]]
+  ) %>% 
+  summarise(
+    ttl_cons = sum(amountfood,  na.rm = TRUE)
+  ) %>% 
+  ungroup() %>% 
+  tidyr::complete(.data[[cons_level]], subjectid, fill = list(ttl_cons =  0)) %>% 
+  left_join(
+    tbl_subjects
+  ) %>% 
+  mutate(daily_cons = ttl_cons/cons_days,
+         consumed   = if_else(ttl_cons != 0, 1, 0)
+  ) %>% 
+  group_by(.data[[cons_level]]) %>% 
+  summarise(
+    consumers  = sum(consumed),
+    #consumers = n_distinct(subjectid[ttl_cons!=0]),
+    population = sum(daily_cons *  wcoeff)/sum(wcoeff[ttl_cons !=0]),
+    sample     = sum(daily_cons *  wcoeff)/sum(wcoeff, na.rm = TRUE)
+  ) %>% 
+  rename_with(
+    # ugly function alert.. To get the name of the level
+    .fn = function(x) names(fdx1_levels_cons[match(x, fdx1_levels_cons)]) ,
+    .cols = .data[[cons_level]]
+  )
+
+
+
+
+
+
 
 
 
