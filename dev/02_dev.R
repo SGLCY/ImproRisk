@@ -34,6 +34,7 @@ usethis::use_package("glue")
 usethis::use_package("reactable")
 usethis::use_package("ggiraph")
 usethis::use_package("ggridges")
+usethis::use_package("rintrojs")
 
 # usethis::use_package("ggthemes")
 usethis::use_pipe()

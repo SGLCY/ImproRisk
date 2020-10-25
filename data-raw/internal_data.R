@@ -22,4 +22,29 @@ foodex.1 <- readxl::read_xlsx("SampleData/foodex.1.xlsx") %>%
   ) %>%
   mutate(across(everything(), as.factor))
 
-usethis::use_data(sample_consumption, foodex.1, internal = TRUE, overwrite = TRUE )
+
+
+occurrence_example_l2 <- readxl::read_excel(
+  "SampleData/occurrence_example.xlsx", sheet = "level2"
+)
+
+
+occurrence_example_l3 <- readxl::read_excel(
+  "SampleData/occurrence_example.xlsx", sheet = "level3"
+)
+
+
+usethis::use_data(sample_consumption, 
+                  foodex.1, 
+                  occurrence_example_l2,
+                  occurrence_example_l3,
+                  internal = TRUE, overwrite = TRUE )
+
+
+
+usethis::use_data(sample_consumption, 
+                  foodex.1, 
+                  occurrence_example_l2,
+                  occurrence_example_l3,
+                  internal = TRUE, overwrite = TRUE )
+

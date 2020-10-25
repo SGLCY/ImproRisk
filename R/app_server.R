@@ -5,7 +5,7 @@
 #' @import shiny
 #' @import dplyr
 #' @import ggplot2
-#' @importFrom reactable colDef colFormat
+#' @importFrom reactable colDef colFormat colGroup
 #' @importFrom forcats fct_rev fct_inorder fct_reorder fct_infreq fct_inseq
 #' @noRd
 app_server <- function( input, output, session ) {
@@ -72,7 +72,11 @@ app_server <- function( input, output, session ) {
   output$tbl_exposure_stats <- renderTable({
     
     tbl_exposure_stats()
-  },rownames = TRUE,digits = function() input$digits_exposure)
+  }
+  ,rownames = TRUE
+  ,digits = function() input$digits_exposure
+  ,caption = "Table values: µg/Kg b.w."
+  )
   
   
   
@@ -114,7 +118,7 @@ app_server <- function( input, output, session ) {
   output$tbl_exposure_statsDemo <- function(){
     
     digits = input$digits_exposureDemo
-    caption  = rv$title_statsDemo
+    caption  = as.character(h4(strong(rv$title_statsDemo)))
     
     tbl_exposure_statsDemo() %>%
       knitr::kable("html", caption = caption,digits = digits ) %>%
@@ -261,22 +265,6 @@ app_server <- function( input, output, session ) {
     x_label <- rv$x_label
     y_label <- rv$y_label
     
-    
-    # tbl_exposure %>% 
-    #   ggplot(aes(.data[[var_to_use]]))+
-    #   stat_ecdf(pad = FALSE)+
-    #   scale_y_continuous(labels = scales::percent)+
-    #   geom_vline(xintercept = ref_value, linetype = "dashed" )+
-    #   annotate("text", x = ref_value+0.05*ref_value, y = 0.51,
-    #            hjust = 0, label= paste0("Reference: ",ref_value, "μg/Kw b.w.")
-    #            )+
-    #   labs(
-    #     title = title,
-    #     x  = x_label,
-    #     y = y_label
-    #   )+
-    #   NULL
-    
     cdf_exposure(tbl_exposure,
                  var_exp = var_to_use,
                  ref_value = ref_value
@@ -418,14 +406,32 @@ app_server <- function( input, output, session ) {
     
     #level_var <- fdx1_levels_cons[[food_level]]
     
-    aggr_consumption_by_group(sample_consumption, level_var)
+    if(input$hide_water){
+      consumption <- sample_consumption %>% 
+        filter(consumed_food_at_level_1 != water_level1)
+    } else {
+      consumption <- sample_consumption
+    }
+    
+    aggr_consumption_by_group(consumption, level_var)
     
     
   })
   
-  output$tbl_aggr_consumption <- renderTable({
+  output$tbl_aggr_consumption <- DT::renderDT({
     
-    tbl_aggr_consumption()
+    tbl_aggr_consumption() %>% 
+      arrange(desc(consumer)) %>% 
+      DT::datatable(
+        
+        style = "bootstrap"
+        , rownames = FALSE
+        , options = list(
+          
+          paging = TRUE,
+          scrollX = TRUE, scrollY = "500px"
+        )
+      )
   })
   
   
@@ -482,7 +488,7 @@ app_server <- function( input, output, session ) {
                           guide =  guide_legend(reverse = TRUE),
                           labels = c(consumer = "Consumer based", 
                                      population = "Population based"
-                                     )
+                          )
         )+
         NULL
       
@@ -516,7 +522,7 @@ app_server <- function( input, output, session ) {
         )
     }
     
-   
+    
     p
     
   })
@@ -723,8 +729,8 @@ app_server <- function( input, output, session ) {
           data_id = .data[[second_top_level]] 
         )
       )+
-      ggiraph::geom_col_interactive(width = 0.5)+
-      coord_flip(ylim = c(0, max_contr*1.10))+
+      ggiraph::geom_col_interactive(width = 0.5, fill = impro_colours[2])+
+      coord_flip(ylim = c(0, max_contr*1.15))+
       labs(
         x = top_level,
         y  = "Contribution",
@@ -736,7 +742,8 @@ app_server <- function( input, output, session ) {
       theme(
         axis.text = element_text(size = 7),
         #axis.title.y = element_text(hjust = 1, angle = 0 )
-        plot.caption = element_text(face = "italic", size = 5)
+        plot.caption = element_text(face = "italic", size = 5),
+        plot.title.position = "plot"
       )
     
   })
@@ -761,6 +768,91 @@ app_server <- function( input, output, session ) {
     )
     
   })
+  
+  
+  # Drill Down ####
+  
+  # https://rstudio.github.io/sortable/articles/novel_solutions.html
+  
+  vars_cross <- reactive({
+    
+    input$drill_varsExplore
+    
+  })
+  
+  
+  tbl_cross_demoExposure <- reactive({
+    
+    
+    req(length(vars_cross()) == 2)
+    
+    vars_cross <- vars_cross()
+    
+    x <- vars_cross[[1]]
+    y <- vars_cross[[2]]
+    
+    
+    temp <- 
+      tbl_exposure %>% 
+      group_by(
+        .data[[x]], .data[[y]]
+      ) %>% 
+      summarise(
+        exposure    = mean(subExp_MB)
+      ) 
+    
+  })
+  
+  
+  output$tbl_cross_demoExposure <- renderTable({
+    
+    tbl_cross_demoExposure() %>% 
+      tidyr::spread(.data[[vars_cross()[[2]]]], exposure)
+    
+  }, caption = as.character(h4("Mean exposure (μg/Kg body weight)"))
+   , caption.placement = "top"
+  )
+  
+  plot_crosss_demoExposure <- reactive({
+    
+    
+    req(length(vars_cross()) == 2)
+    
+    vars_cross <- vars_cross()
+    
+    x <- vars_cross[[1]]
+    y <- vars_cross[[2]]
+    
+    tbl_cross_demoExposure() %>%
+      ggplot(aes(x=.data[[x]], y=exposure, fill = .data[[y]]))+
+      geom_col(width=0.5, position = position_dodge(width = 0.6))+
+      geom_text(aes(label = round(exposure, 3))
+                , position = position_dodge(width = 0.6)
+                , hjust = 1.1
+      )+
+      coord_flip()+
+      scale_fill_brewer(type = "qual", guide = guide_legend(reverse = TRUE))+
+      labs(
+        y  =  rv$x_label,
+        x= "",
+        fill = "",
+        title = glue::glue("Mean exposure across {x} and {y}")
+      )
+    
+    
+  })
+  
+  output$plot_cross_demoExposure <- renderPlot({
+    
+    not_good = length(vars_cross()) < 2
+    
+    if(not_good){
+      validate(message = "Drag 2 variables from the 'List of demographics' to the 'Cross Demo' box")
+    }
+   
+    plot_crosss_demoExposure()
+  })
+  
   
   # Observers ####
   
@@ -805,22 +897,90 @@ app_server <- function( input, output, session ) {
   
   output$sample_data <- DT::renderDataTable({
     
+    
+    vars_numeric <- 
+      sample_consumption %>% select_if(is.numeric) %>% 
+      select(contains("exp")) %>% names()
+    
+    vars_numeric_ind <- match(vars_numeric, names(sample_consumption))
+    
+    match(temp, names(sample_consumption))
+      
     sample_consumption %>% 
-      head(200) %>% 
+      #head(200) %>% 
       DT::datatable(
         caption = "The final table"
         , style = "bootstrap"
         , rownames = FALSE
         , options = list(
           
-          paging = FALSE,
+          paging = TRUE,
           scrollX = TRUE, scrollY = "500px"
         )
         , filter = "top"
-      )
+      ) %>% 
+      DT::formatRound(columns =vars_numeric_ind, digits = 3 )
     
     
   })
+  
+  
+  output$occurrence_l2 <- DT::renderDataTable({
+    
+    occurrence_example_l2
+    
+  })
+  
+  output$occurrence_l3 <- DT::renderDataTable({
+    
+    occurrence_example_l3
+    
+  })
+  
+  # output$occurrence_l3 <- reactable::renderReactable({
+  #   
+  #   occurrence_example_l3 %>% 
+  #     reactable::reactable(
+  #       searchable = TRUE,
+  #       columnGroups = list(
+  #         colGroup(name = "Min", columns = paste0(scenarios, "_min")),
+  #         colGroup(name = "Mean", columns =  paste0(scenarios, "_mean"))
+  #       )
+  #     )
+  #   
+  # })
+  
+  dataset_info <- reactive({
+    
+    data.frame(
+      
+      row.names = c("Consumption", 
+                    "Occurence"
+                    ),
+      dataset = c("Subjects_Consumption_EUMENU Lot2 (N=803).xlsx",
+                 "Occurrence - Mercury (Hg) - DK.xlsx"
+                 )
+
+    )
+    
+    
+  }
+  )
+  
+  output$dataset_info <- renderTable({
+    dataset_info()
+  }
+  , rownames = TRUE
+  , caption = ""
+  )
+  
+  
+  info_improrisk <- renderUI({
+    
+    info_improrisk
+    
+  })
+  
   
   output$stats_label <- renderText({
     
@@ -830,11 +990,54 @@ app_server <- function( input, output, session ) {
     glue::glue('Sample size:{s_size}\nPopulation size: {prettyNum(p_size, big.mark = ",")}')
   })
   
-  output$foodex.1 <- DT::renderDataTable({
+  output$tbl_foodex1 <- DT::renderDataTable({
     
     foodex.1
     
   }, filter = "top")
+  
+  # Inntroductions ####
+  
+  steps <- reactive(data.frame(element = c(NA,
+                                           "#subInfo_exposure",
+                                           "#tbl_exposure_stats",
+                                           "#graphs",
+                                           "#exposure_pdf",
+                                           "#scenario_UI_exposure"
+                                           
+                                           
+                                           ),
+                               intro = c("Welcome! Hit 'Next' to get a tour",
+                                         
+                                         "This table shows basic information on the substance",
+                                         
+                                         "Here, we have the exposure statistics. The values
+                                         you see are in μg/Kg of body weight and are 
+                                         weighted by the population weights",
+                                         
+                                         "There are two graphs to see here. One is
+                                         the Probability distribution of the exposure  in the 'PDF' tab
+                                         and the other is the cummultive exposure - in the 'CDF' tab
+                                         ",
+                                         
+                                         "
+                                         The PDF of the exposure.This a histogram. The exposure estimates for 
+                                         each inndividual is 'binned'and the proportion is calculated.
+                                         ",
+                                         
+                                         "Select the exposure scenario from here, and the tables and charts 
+                                         update accordingly"
+                                         
+                                         )
+                               )
+                    )
+  
+  observeEvent(input$help_exposure,{
+    rintrojs::introjs(session,options = list(steps=steps()))
+    
+  })
+  
+  
   
   
   

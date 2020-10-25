@@ -15,20 +15,29 @@ app_ui <- function(request) {
       dashboardHeader(title = "ImproRisk", titleWidth = 200),
       dashboardSidebar(
         sidebarMenu(
-          menuItem("Exposure", tabName = "exposure", icon = icon("th")),
-          menuItem("Exposure by Demo", tabName = "exposureDemo", icon = icon("th")),
-          menuItem("Contribution", tabName = "contribution", icon = icon("th")),
-          menuItem("Update Data", tabName = "updateData", icon = icon("th")),
-          
-          menuItem("Occurrence", tabName = "occurrence", icon = icon("th"),
+          menuItem("Exposure", tabName = "exposure", icon = icon("atom")),
+          menuItem("Exposure by Demo", tabName = "exposureDemo", icon = icon("user-friends")),
+          menuItem("Contribution", tabName = "contribution", icon = icon("percent")),
+          menuItem("Explore Consumption", tabName = "consumption", icon = icon("utensils")),
+          menuItem("Drill down", tabName = "drillDown", icon = icon("chart-bar")),
+          menuItem("Occurrence", tabName = "occurrence", icon = icon("flask"),
                    startExpanded = FALSE,
                    menuSubItem("Level 2", tabName = "occurrenceL2"),
                    menuSubItem("Level 3", tabName = "occurrenceL3")
           ),
-          menuItem("FoodEx1", tabName = "foodex1", icon = icon("th")),
-          menuItem("Consumption", tabName = "consumption", icon = icon("th")),
-          menuItem("Tables", tabName = "tables", icon = icon("th")),
-          menuItem("INFO", tabName = "info", icon = icon("th"))
+          menuItem("FoodEx1", tabName = "foodex1", icon = icon("bread-slice")),
+          menuItem("Tables", tabName = "tables", icon = icon("table")),
+          menuItem("Update Data", tabName = "updateData", icon = icon("file-import")),
+          menuItem("Log", tabName = "log",icon = icon("columns")),
+          menuItem("ABOUT", tabName = "info", icon = icon("info")),
+          shinyWidgets::actionBttn(
+            inputId = "help_exposure",
+            label = NULL,
+            style = "material-circle", 
+            color = "default",
+            size = "xs",
+            icon = icon("question")
+          ) 
           #tableOutput("substance_info")
           #,DT::dataTableOutput("substance_info")
           
@@ -39,17 +48,15 @@ app_ui <- function(request) {
         tabItems(
           # EXPOSURE TAB ####
           tabItem(tabName = "exposure",
-                  h3("Explore exposure"),
-                  fluidRow(
-                    box(title= "Substance Info"#, tableOutput("subInfo_exposure")
-                    )
-                    #box(title = "fff", mod_showSubstanceInfo_ui("showSubstanceInfo_ui_1"))
-                    
-                  ),
-                  tags$hr(style="border-color: purple;"),
+                  h3("Exposure estimates"),
+                  tags$hr(style="border-color: black;"),
                   #h4("Exposure Statistics"),
                   fluidRow(
                     column(3,
+                           box(title= "Substance Info", 
+                               tableOutput("subInfo_exposure"),
+                               width = NULL
+                           ),
                            box(title="Exposure Statistics (adjusted by Population)", 
                                textOutput("stats_label"),
                                br(),
@@ -98,7 +105,7 @@ app_ui <- function(request) {
                                  ),
                                  column(width = 4,
                                         offset = 2,
-                                        h5("Tables  & Graph"),
+                                        h5("Tables  & Graphs"),
                                         numericInput("digits_exposure", 
                                                      "Digits",
                                                      value = 3, 
@@ -137,10 +144,6 @@ app_ui <- function(request) {
           # EXPOSURE by GROUP TAB ####
           tabItem(tabName = "exposureDemo",
                   h3("Explore exposure, grouped by demographic information"),
-                  fluidRow(
-                    #box("Substance Info", tableOutput("subInfo_exposureDemo")),
-                    
-                  ),
                   tags$hr(style="border-color: black;"),
                   fluidRow(
                     
@@ -154,7 +157,7 @@ app_ui <- function(request) {
                              , width = NULL
                            )
                     ),
-                    column(7,
+                    column(7,offset = 1,
                            box(
                              
                              tableOutput("tbl_exposure_statsDemo")
@@ -165,8 +168,13 @@ app_ui <- function(request) {
                   # Stats and Graphs
                   fluidRow(
                     column(3,
+                           box("Substance Info", 
+                               tableOutput("subInfo_exposureDemo"),
+                               width = NULL
+                           ),
                            box(title = "Customise tables & graphs",
-                               collapsed = TRUE, collapsible = TRUE,width = NULL, 
+                               collapsed = TRUE, collapsible = TRUE,
+                               width = NULL, 
                                numericInput("digits_exposureDemo", 
                                             "Digits",
                                             value = 2, 
@@ -189,7 +197,7 @@ app_ui <- function(request) {
                                )
                            )
                     ),
-                    column(7,
+                    column(7, offset = 1,
                            box(title = "Distribution of exposure", width = NULL,
                                tabBox(id = "graphsDemo",width = NULL, 
                                       title= "",
@@ -280,7 +288,7 @@ app_ui <- function(request) {
                                  column(width =  6,
                                         sliderInput(
                                           inputId = "contr_height",
-                                          value = 800,
+                                          value = 700,
                                           min  = 500, max = 1200,
                                           label ="Graph height",
                                           step = 50,
@@ -305,8 +313,11 @@ app_ui <- function(request) {
           
           # Tables TAB ####
           tabItem(tabName = "tables",
-                  h3("The data"),
-                  box("Substance Info", DT::DTOutput("sample_data"),width = 12),
+                  h3("Consumption and exposure at food consumption occassion"),
+                  box(title = "", 
+                      DT::DTOutput("sample_data"),
+                      width = 12
+                  ),
                   #box("Substance Info", mod_showSubstanceInfo_ui("showSubstanceInfo_ui_2"))
                   
           ),
@@ -314,7 +325,7 @@ app_ui <- function(request) {
           # FOODEX1 TAB ####
           tabItem(tabName = "foodex1",
                   h3("The FoodEx1 food classification system"),
-                  box(DT::DTOutput("foodex.1"),width = 12)
+                  box(DT::DTOutput("tbl_foodex1"),width = 12)
           ),
           
           
@@ -338,32 +349,169 @@ app_ui <- function(request) {
                                   title= "",
                                   tabPanel(title = "Table",
                                            h2("Mean Consumption (grams)"),
-                                           tableOutput("tbl_aggr_consumption")
+                                           DT::DTOutput("tbl_aggr_consumption")
                                   ),
                                   tabPanel(title = "Graph",
                                            uiOutput("plot_aggr_consumption_UI", inline = TRUE)
                                   )
                            )
-                           ),
+                    ),
                     column(width = 4,
                            
-                           box(title = "Graph options ",
+                           box(title = "Options ",
+                               shinyWidgets::prettyCheckbox(
+                                 inputId = "hide_water",
+                                 value = TRUE,
+                                 label ="Filter out water?",
+                                 icon = icon("check"),
+                                 status = "success"
+                               ),
                                selectInput("slct_consumptionType",
-                                           "Select consumption type",
+                                           "Select consumption type  (for Graph",
                                            choices = c("Consumer based" = "consumer", 
                                                        "Population based" =  "population",
                                                        "Both"  = "Both"),
                                            selected = "Consumer based"
-                                           ),
+                               ),
                                collapsible = TRUE,
                                collapsed = FALSE
-                               )
                            )
-                    
-                        
                     )
                     
-          )
+                    
+                  )
+                  
+          ), #end  of tabItem
+          
+          # Drill Down ####
+          tabItem(tabName = "drillDown",
+                  h3("Cross tabulations of demographics"),
+                  h4("Get the mean exposure by 2 demographics"),
+                  fluidRow(
+                    column(width = 6,
+                           box(width = NULL,
+                               plotOutput("plot_cross_demoExposure")
+                               
+                           ),
+                           box(width = NULL,
+                               tableOutput("tbl_cross_demoExposure")
+                           )
+                           
+                    ),
+                    column(width = 5, offset = 1, 
+                           box(title = "", height = 350, width = NULL,
+                               column(width = 12/3,
+                                      h4("List of demographics"),
+                                      sortable::rank_list(
+                                        text = "Choose from here and drag to the right",
+                                        labels = unname(vars_demo),
+                                        input_id = "drill_varsDemo",
+                                        options = sortable::sortable_options(group = "drill_down_group")
+                                      ),
+                               ),
+                               column(width = 12/3,
+                                      h4("Cross demo"),
+                                      sortable::rank_list(
+                                        text = "Put exactly 2 demographics here",
+                                        labels = c(),
+                                        input_id = "drill_varsExplore",
+                                        options = max_2_item_opts
+                                      )
+                               )
+                               # ,column(width = 12/3,
+                               #        h4("Filter by"),
+                               #        sortable::rank_list(
+                               #          text = "1 demographic only",
+                               #          labels = c(),
+                               #          input_id = "drill_varsFilter",
+                               #          options = max_1_item_opts
+                               #        )
+                               # )
+                           )  
+                           
+                           
+                    )
+                    
+                    
+                  )
+                  
+          ),
+          
+          # Update Data #####
+          tabItem(tabName = "updateData",
+                  h3("Import Consumption and Occurrene Data"),
+                  fluidRow(
+                    column(width = 3,
+                           box(width = NULL,
+                               fileInput("import_consumption",
+                                         "Import Consumption data",
+                                         width = NULL
+                               ),
+                               br(),
+                               fileInput("import_occurrence",
+                                         "Import Occurrence Data"
+                               )     
+                               
+                           )
+                           
+                           
+                    )
+                  )
+                  
+                  
+          ),
+          
+          # Occurence tabs ####
+          # Level 2.
+          tabItem(tabName = "occurrenceL2",
+                  fluidRow(
+                    box(title = h3("Occurence at Level 2"),
+                        width = 12,
+                        DT::DTOutput("occurrence_l2")
+                    )
+                  )
+                  
+                  
+          ),
+          
+          # Level 3
+          tabItem(tabName = "occurrenceL3",
+                  fluidRow(
+                    box(title = h3("Occurence at Level 3"),
+                        width = 12,
+                        DT::DTOutput("occurrence_l3")
+                    )
+                  )
+          ),
+          
+          # Log ####
+          tabItem(tabName = "log",
+                  fluidRow(
+                    
+                    column(width = 6,
+                           
+                           box(width = NULL,
+                               title = "Dataset Info",
+                               tableOutput("dataset_info")
+                               
+                               
+                           )
+                           
+                           
+                    )
+                  )
+                  
+          ),
+          
+          # INFO ####
+          
+          tabItem(tabName = "info",
+                  box(width = 6, 
+                      title = h3("ImproRisk shiny app for Dietary Risk Assessment"),
+                      info_improrisk
+                     )
+                  
+                  )
         )
       )
     )
@@ -393,6 +541,7 @@ golem_add_external_resources <- function(){
     )
     # Add here other external resources
     # for example, you can add shinyalert::useShinyalert() 
+    , rintrojs::introjsUI()
   )
 }
 

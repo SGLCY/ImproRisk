@@ -1,6 +1,23 @@
 
 # some tables
 
+
+# foodex.1 <- readxl::read_xlsx("SampleData/Foodex.1.xlsx") %>%
+#   select(
+#     -ends_with("_HCODE"),
+#     -ends_with("_ID")
+#   ) %>%
+#   mutate(across(everything(), as.factor))
+# 
+# 
+# 
+# sample_consumption <- 
+#   readxl::read_xlsx("SampleData/consumption_sample.xlsx") %>% 
+#   janitor::clean_names()
+
+# foodex.1 <- improrisk.shiny:::foodex.1
+# sample_consumption <- improrisk.shiny:::sample_consumption
+
 tbl_foodex_desc <- 
   foodex.1 %>% 
   distinct(FOODEX_L1_DESC, FOODEX_L2_DESC, FOODEX_L3_DESC, FOODEX_L4_DESC) %>% 
@@ -54,9 +71,6 @@ fdx1_l4 <- unique(foodex.1$FOODEX_L4_DESC)
 
 
 
-match("Cheese",  fdx1_l4)
-
-
 sub_info <- 
   # data.frame(
   #              ~Chemical.Substance, ~`Mercury.(Hg),.MERCURY`,
@@ -81,18 +95,20 @@ sub_info <-
 # see icons at http://fontawesome.io/icons/
 
 tab_items <- tibble::tribble(
-  ~tabTitle,          ~tabName, ~icon,
-  "Exposure",        "exposure",  "th",
-  "Exposure by Demo",    "exposureDemo",  "th",
-  "Contribution",    "contribution",  "th",
-  "Update data",      "updateData",  "th",
-  "Occurrence",      "occurrence",  "th",
-  "Level 2",    "occurrenceL2",  "th",
-  "Level 3",    "occurrenceL3",  "th",
-  "Foodex1",         "foodex1",  "th",
-  "Consumption",     "consumption",  "th",
-  "Tables",          "tables",  "th",
-  "Info",            "info",  "th"
+  ~tabTitle,            ~tabName,         ~icon,
+  "Exposure",           "exposure",       "th",
+  "Exposure by Demo",   "exposureDemo",   "th",
+  "Contribution",       "contribution",   "th",
+  "Explore Consumption","consumption",    "th",
+  "Drill down",         "drillDown",      "chart-bar",
+  "Occurrence",         "occurrence",     "th",
+  "Level 2",            "occurrenceL2",   "th",
+  "Level 3",            "occurrenceL3",   "th",
+  "Foodex1",            "foodex1",        "th",
+  "Tables",             "tables",         "th",
+  "Update data",        "updateData",     "th",
+  "Log",                "log",            "columns",
+  "ABOUT",               "info",           "th"
 )
 
 
@@ -111,38 +127,13 @@ exposure_summary <- list(
 )
 
 
-#' Get a tibble of weighted summary statistics
-summarise_weighted <- function(data){
-  
-  # Note the ref_value  
-  
-  data %>% 
-    dplyr::summarise(
-      #N           = dplyr::n(),
-      Min         = min(exposure, na.rm = TRUE),
-      Max         = max(exposure, na.rm = TRUE),
-      Mean        = Hmisc::wtd.mean(exposure, wcoeff),
-      SD          = sqrt(Hmisc::wtd.var(exposure, wcoeff)),
-      #  For SE see the discussion 
-      #R https://stats.stackexchange.com/questions/25895/computing-standard-error-in-weighted-mean-estimation
-      
-      #SE         = wtd.std*sqrt(sum(wcoeff))/sum(wcoeff),
-      P25         = Hmisc::wtd.quantile(exposure, wcoeff, probs = 0.25),
-      Median      = Hmisc::wtd.quantile(exposure, wcoeff, probs = 0.50),
-      P75         = Hmisc::wtd.quantile(exposure, wcoeff, probs = 0.75),
-      P95         = Hmisc::wtd.quantile(exposure, wcoeff, probs = 0.95),
-      # % above reference value
-      pctOver     = sum(wcoeff[exposure>ref_value])/sum(wcoeff)
-    )
-  
-}
-
 # Global values ####
 
 vars_demo <- c("Gender"="gender",  "Area" = "area","Population class" = "pop_class")
 
 scenarios <- c("LB", "MB", "UB")
 
+water_level1 <- "Drinking water (water without any additives except carbon dioxide; includes water ice for consumption)"
 
 globals <- list(
   min.n.breaks = 5,
@@ -154,9 +145,72 @@ globals <- list(
 
 impro_colours <- c(
   "#a6bddb",
-  "#756bb1"
+  "#756bb1",
+  "#2ca25f"
   
 )
+
+
+info_improrisk <- tagList(
+  p("The ImproRisk Shiny app was built for the",
+    a(href = "https://www.moh.gov.cy/moh/sgl/sgl.nsf/home_en/home_en?opendocument",
+      "State General Laboratory (SGL) of the Republic of Cyprus"
+      ), 
+    "by the private company", 
+    a(href = "www.improvast.com", "Improvast"), 
+    "and it is owned by SGL."
+  ),
+  p(" The current version is 0.0.1"
+    , br()
+    , "Last update November 2020"
+  ),
+  p("This version supports",
+    tags$li("Weighting Coefficients for a non-representative food survey sample"),
+    tags$li("Exposure assessment at FoodEx1 Level3 food categorisation"),
+  ),
+  p("For further information please contact:",
+    tags$li("1: gstavroulakis@sgl.moh.gov.cy"),
+    tags$li("2: info@improvast.com"),
+    br(),
+    "Feel free to forward any bugs and/or recommendations."
+  ),
+  p("The code for the app lives at", 
+    a(href="https://github.com/SGLCY/ImproRisk", "SGL's github page"),
+    )
+    
+    
+)
+#   
+#   This version supports
+#   
+#   - 
+#   
+#   - 
+#   
+#   
+# )
+#   
+#   
+#   
+# 
+# 
+# To update data you will need
+# 
+# - Subjects_Consumption_Template.WeightingCoefficients.xlsx
+#   for the subject and food consumption data 
+# 
+# - Occurence Template - Level 2 & Level 3.xlsm
+#   for the occurrence data in Level 2 and Level 3
+# 
+# Both templates can be found in the improrisk.com website
+# 
+
+# ")
+
+
+
+
+
 # Demo data ####
 
 
@@ -210,386 +264,62 @@ tbl_exposure <-
 
 
 
-range_exp <- range(tbl_exposure$subExp_MB)
-
-bins <- 10
-
-binsize <- diff(range_exp)/bins
-
-breaks = seq(from = range_exp[1], to = range_exp[2], by =  binsize)
+# Sortable ####
 
 
-
-p <- 
-  tbl_exposure %>% 
-  #ggplot(aes(.data[[var_to_use]]))+
-  ggplot(aes(subExp_MB))+
-  geom_histogram(
-    
-    position = "identity"
-    , colour= "grey90"
-    , alpha  = 0.3
-    , boundary = 0
-    , bins = bins
-    , breaks = breaks
-    , aes(y= ..count../sum(..count..))
-  )+
-  stat_bin(
-    position = "identity"
-    , bins = bins
-    , breaks = breaks,geom= "text", 
-    aes(label = percent(..count../ sum(..count..),
-                        accuracy = 0.1
-    ),
-    y = ..count../sum(..count..)
-    )
-    , vjust = -0.5
-  )+
-  scale_x_continuous(breaks = breaks, labels = round(breaks, 3))+
-  scale_y_continuous(labels = percent)+
-  geom_vline(xintercept = 0.98)+
-  #theme_bw()+
-  theme(
-    panel.grid.minor.x = element_blank()
-  )+
-  NULL
-
-tbl_exposure %>% 
-  pdf_exposure(
-    "subExp_MB",
-    10, 
-    accuracy = 1/10^0
-  )
-
-p
-
-q <- ggplot_build(p)
-
-q$data
-
-
-
-tbl_exposure_stats <- 
-  tbl_exposure %>% 
-  tidyr::pivot_longer(
-    cols = starts_with("subExp_"),
-    names_to = "scenario",
-    values_to = "exposure"
-  ) %>% 
-  dplyr::group_by(scenario,  area) %>% 
-  summarise_weighted() %>% 
-  # summarise(
-  #   across(exposure, exposure_summary,.names = "{.fn}")
-  # ) %>%
-  ungroup() %>% 
-  {.}
-
-tbl_exposure_stats %>% 
-  dplyr::mutate(
-    scenario = stringr::str_remove(scenario, "subExp_")
-  ) %>% 
-  dplyr::filter(scenario == "MB") %>% 
-  dplyr::select(-scenario) %>% 
-  # tidyr::gather(key, value, -area) %>% 
-  # tidyr::pivot_wider(names_from = area, values_from = value) %>% 
-  mutate(
-    pctOver = glue::glue("{round(pctOver*100, 1)}%")
-  )
-
-
-# 
-# 
-# tbl_exposure_stats %>%
-# tidyr::gather(key, value, - scenario) %>%
-#   tidyr::pivot_wider(names_from = scenario, values_from = value) %>% 
-#   dplyr::rename_with(
-#     ~stringr::str_remove(., "subExp_"),
-#     dplyr::starts_with("SubExp_")
-#   ) %>% 
-#   data.frame(row.names = "key")
-
-food_level <- fdx1_levels[[2]]
-
-# Need to define levels in the food groups. in case some food groups are not found in the 
-# food survey
-
-
-temp <- 
-  sample_consumption %>% 
-  rename(
-    FOODEX_L3_DESC = consumed_food_at_level_3,
-    FOODEX_L2_DESC = consumed_food_at_level_2,
-    FOODEX_L1_DESC = consumed_food_at_level_1
-  ) %>% 
-  rename_with(~scenarios, .cols = contains("refined_exposure")) %>% 
-  group_by(
-    across(all_of(food_level))
-  ) %>% 
-  summarise(
-    across(.cols= all_of(scenarios), .fns = ~sum(., na.rm = TRUE))
-  ) %>% 
-  ungroup() %>% 
-  full_join(
-    tbl_foodex_desc %>% 
-      distinct(
-        across(all_of(food_level))
-      )
-  ) %>% 
-  tidyr::gather(
-    "scenario", "exposure", all_of(scenarios)
-  ) %>% 
-  tidyr::replace_na(list(exposure = 0)) %>% 
-  # here i need the grouping to be onthe scenario levels
-  group_by(scenario) %>% 
-  mutate(
-    contribution = exposure/ sum(exposure, na.rm = TRUE)
-  ) 
-
-# Calculate the Within Percentage 
-
-tbl_contribution <- 
-  temp %>% 
-  group_by(scenario, .data[[dplyr::nth(food_level, -2,default = food_level)]]) %>% 
-  mutate(
-    contr_within = exposure/ sum(exposure, na.rm = TRUE)
-  ) %>% 
-  #  Set NAN 0/0 as NA. Need to show this in the table 
-  mutate(contr_within = if_else(is.nan(contr_within), NA_real_, contr_within)) %>% 
-  ungroup()
-
-tbl_contribution 
-
-# filter(FOODEX_L2_DESC == "Alcoholic mixed drinks")
-# filter(contr_within>0) %>% 
-#filter(scenario == "MB") 
-#View()
-
-food_level
-
-
-nth(c("a", "b", "c"), -4, default = "f")
-
-#library(reactable)
-
-#  Level 1 Show depends on the requested depth
-if(length(food_level) == 3) {
-  show_level1 <- FALSE
+max_2_item_opts <- sortable::sortable_options(
+  # inspiration from https://jsbin.com/nacoyah/edit?js,output
+  # Sortable.create(qux, {
+  #   group: {
+  #     name: 'qux',
+  #     put: function (to) {
+  #       return to.el.children.length < 4;
+  #     }
+  #   },
+  #   animation: 100
+  # });
   
-} else{
-  show_level1 <- TRUE
-}
-
-if(length(food_level) == 1) {
-  show_contr <- FALSE
-  
-} else{
-  show_contr <- TRUE
-}
-
-reactable::reactable(tbl_contribution %>% 
-                       filter(scenario  == "MB") %>% 
-                       #filter(FOODEX_L1_DESC == "Fish and other seafood (including amphibians, reptiles, snails and insects)") %>% 
-                       # select(-FOODEX_L1_DESC) %>% 
-                       {.}, 
-                     # in the Level 1 case
-                     groupBy = nth(food_level, -2, default = food_level),
-                     columns = list(
-                       scenario = colDef(show = FALSE),
-                       exposure = colDef(name = "Total exposure (μg/Kg b.w)", 
-                                         aggregate = "sum",
-                                         format = colFormat(digits = 1),
-                                         filterable = FALSE
-                       ),
-                       contribution = colDef(name = "Contribution to Total exposure",aggregate = "sum",
-                                             format = colFormat(percent = TRUE, digits =  2),
-                                             filterable = FALSE
-                                             
-                       ),
-                       contr_within = colDef(name = "Contribution within"
-                                             ,show = show_contr
-                                             ,aggregate = "sum",
-                                             filterable = FALSE,
-                                             format = colFormat(percent = TRUE, digits =  2)
-                       ),
-                       FOODEX_L1_DESC = colDef(show = show_level1)
-                     ),
-                     striped = TRUE,
-                     bordered = TRUE,
-                     highlight = TRUE,
-                     #filterable = TRUE,
-                     searchable = TRUE,
-                     rowStyle = reactable::JS("function(rowInfo) {
-          if (rowInfo.aggregated   == true) {
-          return {background: 'rgba(0,0,0,0.07', fontWeight: 'bold' }
-          }
-          }")
-                     # Not working
-                     # theme = reactableTheme(
-                     #   rowGroupStyle = list(background= "rgba(0, 0, 0, 0.23)"
-                     #                        ),
-                     #   rowStyle = list(colour = "#008000")
+  # I have not seen a group value be done as an object before this post.
+  # Glad to see `sortable` handle it!
+  group = list(
+    # use a group name to allow sharing between lists
+    name = "drill_down_group",
+    # add a `put` function that can determine if an element may be placed
+    put = htmlwidgets::JS("
+      function(to) {
+        // only allow a 'put' if there is less than 1 child already
+        return to.el.children.length < 2;
+      }
+    ")
+  )
 )
 
 
-dplyr::nth(food_level, 2)
-
-food_level <- fdx1_levels[[3]]
-
-# in the Level 1 case
-nth(food_level, -2, default = food_level)
-
-
-# Graph
-
-#library(forcats)
-
-
-max(stringr::str_length(fdx1_l2))
-
-p <- 
-  tbl_contribution %>% 
-  filter(scenario == "MB") %>% 
-  filter(contribution  != 0) %>% 
-  filter(contribution > 0.001) %>% 
-  #filter(stringr::str_detect(FOODEX_L1_DESC, "Fish")) %>% 
-  ggplot(
-    aes(forcats::fct_reorder(FOODEX_L2_DESC, contribution), contribution, 
-        tooltip = scales::percent(contribution,  accuracy = 0.1)
-    )
-  )+
-  ggiraph::geom_col_interactive(width = 0.5)+
-  coord_flip()+
-  labs(
-    x = "Level 2 food groups", y  = "Contribution to Total exposure",
-    title = "Contribution to Total Exposure by FOODEX2"
-  )+
-  scale_y_continuous(labels = scales::percent, expand = c(0,0.001))+
-  scale_x_discrete(labels = function(x) stringr::str_wrap(x, 30))+
-  theme_bw()+
-  theme(
-    axis.text = element_text(size = 5),
-    axis.title.y = element_text(hjust = 1, angle = 0 )
-  )
-
-p
-
-ggiraph::girafe(ggobj = p)
-
-
-
-
-# Average Consumption ####
-
-cons_level <- fdx1_levels_cons[[1]]
-
-
-temp <- 
-  sample_consumption %>% 
-  group_by(
-    subjectid, .data[[cons_level]]
-  ) %>% 
-  summarise(
-    ttl_cons = sum(amountfood,  na.rm = TRUE)
-  ) %>% 
-  ungroup() %>% 
-  tidyr::complete(.data[[cons_level]], subjectid, fill = list(ttl_cons =  0)) %>% 
-  left_join(
-    tbl_subjects
-  ) %>% 
-  mutate(daily_cons = ttl_cons/cons_days,
-         consumed   = if_else(ttl_cons != 0, 1, 0)
-  ) %>% 
-  group_by(.data[[cons_level]]) %>% 
-  summarise(
-    consumers  = sum(consumed),
-    #consumers = n_distinct(subjectid[ttl_cons!=0]),
-    consumer    = sum(daily_cons *  wcoeff)/sum(wcoeff[ttl_cons !=0]),
-    population = sum(daily_cons *  wcoeff)/sum(wcoeff, na.rm = TRUE)
-  ) 
-# 
-#   rename_with(
-#     # ugly function alert.. To get the name of the level
-#     .fn = function(x) names(fdx1_levels_cons[match(x, fdx1_levels_cons)]) ,
-#     .cols = .data[[cons_level]]
-#   )
-
-temp 
+max_1_item_opts <- sortable::sortable_options(
+  # inspiration from https://jsbin.com/nacoyah/edit?js,output
+  # Sortable.create(qux, {
+  #   group: {
+  #     name: 'qux',
+  #     put: function (to) {
+  #       return to.el.children.length < 4;
+  #     }
+  #   },
+  #   animation: 100
+  # });
   
-
-plot <- 
-  temp %>% 
-  slice_max(n= 21, order_by = consumer) %>% 
-  ggplot(
-    aes(
-      x = forcats::fct_rev(forcats::fct_inorder(.data[[cons_level]])), #, consumer), 
-      y = consumer
-    )
-  )+
-  geom_col(width = 0.8, fill = "#756bb1")+
-  geom_text(aes(label= round(consumer, 0))
-            ,hjust = 1.1
-            , colour= "grey90"
-            )+
-  coord_flip()+
-  labs(
-    x = "",
-    y  = "grams",
-    title = "title",
-    subtitle = "subtitle"
-  )+
-  scale_y_continuous( expand = c(0,0.1))+
-  scale_x_discrete(labels = function(x) stringr::str_wrap(x, 60))+
-  theme(
-    plot.background = element_blank(),
-    legend.background = element_blank(),
-    axis.text = element_text(size= 14)
+  # I have not seen a group value be done as an object before this post.
+  # Glad to see `sortable` handle it!
+  group = list(
+    # use a group name to allow sharing between lists
+    name = "drill_down_group",
+    # add a `put` function that can determine if an element may be placed
+    put = htmlwidgets::JS("
+      function(to) {
+        // only allow a 'put' if there is less than 1 child already
+        return to.el.children.length < 1;
+      }
+    ")
   )
-
-plot    
-
-
-temp %>% 
-  slice_max(n= 20, order_by = .data[["consumer"]]) %>% 
-  tidyr::gather(key, value, consumer, population) %>% 
-  ggplot(
-    aes(
-      x = forcats::fct_rev(forcats::fct_inorder(.data[[cons_level]])), #, consumer), 
-      y = value,
-      
-      fill = key
-    )
-  )+
-  geom_col(width = 0.8, position = position_dodge())+
-  geom_text(aes(label= round(value, 0))
-            ,hjust = -0.5, colour= "grey10",
-            position = position_dodge(width = 0.8)
-  )+
-  coord_flip()+
-  labs(
-    x = "",
-    y  = "grams",
-    title = "title",
-    subtitle = "subtitle"
-  )+
-  scale_y_continuous( expand = c(0,0.1))+
-  scale_x_discrete(labels = function(x) stringr::str_wrap(x, 50))+
-  scale_fill_brewer(type = "qual", palette = 2, 
-                    guide =  guide_legend(reverse = TRUE),
-                    labels = c(consumer = "Consumer based", population = "Population based")
-                    )+
-  theme(
-    plot.background = element_blank(),
-    legend.background = element_blank(),
-    axis.text = element_text(size= 14)
-  )+
-  #guides(fill = guide_legend(reverse = TRUE) )+
-  NULL
-
-
-
-
-
-
-
+)
 
 

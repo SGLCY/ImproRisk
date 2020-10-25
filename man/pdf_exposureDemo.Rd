@@ -3,11 +3,13 @@
 \name{pdf_exposureDemo}
 \alias{pdf_exposureDemo}
 \title{PDF exposure by Group
- Compare distribtuion across groups}
+ Compare distribtuion across groups
+ @noRd}
 \usage{
 pdf_exposureDemo(data, var_exp, var_group, bandwith, scale = 1.1, ref_value)
 }
 \description{
 PDF exposure by Group
  Compare distribtuion across groups
+ @noRd
 }

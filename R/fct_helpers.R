@@ -11,7 +11,7 @@ label_ref_value <- function(ref_value){
 
 #' Calculate bandwidth for the ggridges plot
 #' @details Stolen from {ggridges} packages
-#' 
+#' @noRd
 calc_bandwidth = function(data, target, group) {
   
   xdata <- na.omit(data.frame(x=data[[target]], group=data[[group]]))
@@ -31,6 +31,34 @@ calc_bandwidth = function(data, target, group) {
   )
 }
 
+
+# Summary Statistics ####
+#' Get a tibble of weighted summary statistics
+#' @noRd
+summarise_weighted <- function(data){
+  
+  # Note the ref_value  
+  
+  data %>% 
+    dplyr::summarise(
+      #N           = dplyr::n(),
+      Min         = min(exposure, na.rm = TRUE),
+      Max         = max(exposure, na.rm = TRUE),
+      Mean        = Hmisc::wtd.mean(exposure, wcoeff),
+      SD          = sqrt(Hmisc::wtd.var(exposure, wcoeff)),
+      #  For SE see the discussion 
+      #R https://stats.stackexchange.com/questions/25895/computing-standard-error-in-weighted-mean-estimation
+      
+      #SE         = wtd.std*sqrt(sum(wcoeff))/sum(wcoeff),
+      P25         = Hmisc::wtd.quantile(exposure, wcoeff, probs = 0.25),
+      Median      = Hmisc::wtd.quantile(exposure, wcoeff, probs = 0.50),
+      P75         = Hmisc::wtd.quantile(exposure, wcoeff, probs = 0.75),
+      P95         = Hmisc::wtd.quantile(exposure, wcoeff, probs = 0.95),
+      # % above reference value
+      pctOver     = sum(wcoeff[exposure>ref_value])/sum(wcoeff)
+    )
+  
+}
 
 #' Create a 'select Scenario input
 #' @param tab_name The tab where the input will appear
@@ -96,11 +124,12 @@ pdf_exposure <- function(data,
       
       position = "identity"
       , colour= "grey90"
-      , alpha  = 0.3
+      , alpha  = 1
       , boundary = 0
       , bins = bins
       , breaks = breaks
       , aes(y= ..count../sum(..count..))
+      , fill =  impro_colours[2]
     )+
     stat_bin(
       position = "identity"
@@ -158,6 +187,7 @@ cdf_exposure <- function(data,
 
 #'  PDF exposure by Group
 #'  Compare distribtuion across groups
+#'  @noRd
 pdf_exposureDemo <- function(data,
                              var_exp,
                              var_group,
@@ -173,7 +203,7 @@ pdf_exposureDemo <- function(data,
     ggplot(
       aes(y = .data[[var_group]], x = .data[[var_exp]])
     )+
-    ggridges::geom_density_ridges(fill = impro_colours[1],
+    ggridges::geom_density_ridges(fill = impro_colours[2],
                                   bandwidth =  bandwith, 
                                   stat="density_ridges", 
                                   scale =  scale,
