@@ -333,6 +333,7 @@ app_ui <- function(request) {
                   h3("Consumption and exposure at food consumption occassion"),
                   box(title = "", 
                       DT::DTOutput("sample_data"),
+                      mod_downloadTable_ui("full_data"),
                       width = 12
                   )
           ),
@@ -348,7 +349,8 @@ app_ui <- function(request) {
           # FOODEX1 TAB ####
           tabItem(tabName = "foodex1",
                   h3("The FoodEx1 food classification system"),
-                  box(DT::DTOutput("tbl_foodex1"),width = 12)
+                  box(DT::DTOutput("tbl_foodex1"),width = 12),
+                  mod_downloadTable_ui("foodex1")
           ),
           
           
@@ -417,11 +419,12 @@ app_ui <- function(request) {
                     column(width = 6,
                            box(width = NULL,
                                plotOutput("plot_cross_demoExposure"),
-                               uiOutput("show_downloadBttn")
+                               uiOutput("downBtn_crossDemoPlot")
                                
                            ),
                            box(width = NULL,
-                               tableOutput("tbl_cross_demoExposure")
+                               tableOutput("tbl_cross_demoExposure"),
+                               uiOutput("downBtn_crossDemoTable")
                            )
                            
                     ),
@@ -534,7 +537,7 @@ app_ui <- function(request) {
           
           tabItem(tabName = "info",
                   box(width = 6, 
-                      title = h3("ImproRisk shiny app for Dietary Risk Assessment"),
+                      title = "",
                       info_improrisk
                   )
                   

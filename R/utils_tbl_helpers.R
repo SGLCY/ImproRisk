@@ -166,6 +166,10 @@ impro_colours <- c(
 
 
 info_improrisk <- tagList(
+  tags$img(src = "www/ImproRisk_Logo_Transparent_Left.png", width= "25%"),
+  br(),
+  h3("ImproRisk shiny app for Dietary Risk Assessment"),
+  br(),
   p("The ImproRisk Shiny app was built for the",
     a(href = "https://www.moh.gov.cy/moh/sgl/sgl.nsf/home_en/home_en?opendocument",
       "State General Laboratory (SGL) of the Republic of Cyprus"
@@ -184,13 +188,17 @@ info_improrisk <- tagList(
   ),
   p("For further information please contact:",
     tags$li("1: gstavroulakis@sgl.moh.gov.cy"),
-    tags$li("2: info@improvast.com"),
+    tags$li("2: lefkios@improvast.com"),
     br(),
     "Feel free to forward any bugs and/or recommendations."
   ),
   p("The code for the app lives at", 
     a(href="https://github.com/SGLCY/ImproRisk", "SGL's github page"),
-    )
+    ),
+  br(),
+  tags$img(src = "www/sgl_logo.png", width= "15%"),
+  tags$img(src = "www/improvast_logo.png", width = "10%")
+  
     
     
 )

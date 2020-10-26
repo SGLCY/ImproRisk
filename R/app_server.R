@@ -73,6 +73,19 @@ app_server <- function( input, output, session ) {
              the_table = temp_tbl_exposure)
   
   
+  callModule(mod_downloadTable_server, "foodex1",
+             table_name = "foodex1",
+             the_table = foodex1)
+  
+  
+  callModule(mod_downloadTable_server, "full_data",
+             table_name = "full_data",
+             the_table = full_data)
+  
+  
+  callModule(mod_downloadTable_server, "tbl_cross_demoExposure",
+             table_name = "tbl_cross_demoExposure",
+             the_table = tbl_cross_demoExposure)
   
   
   
@@ -104,7 +117,14 @@ app_server <- function( input, output, session ) {
     y_label = "Population" # this might be `sample`? in case of non weighted
   )
   
+  #temp for download
+  foodex1 <- reactive({
+    foodex.1
+  })
   
+  full_data <- reactive({
+    sample_consumption
+  })
   
   #  Exposure Statistics ####
   
@@ -835,8 +855,7 @@ app_server <- function( input, output, session ) {
     y <- vars_cross[[2]]
     
     
-    temp <- 
-      tbl_exposure %>% 
+    tbl_exposure %>% 
       group_by(
         .data[[x]], .data[[y]]
       ) %>% 
@@ -897,13 +916,22 @@ app_server <- function( input, output, session ) {
   })
   
   # Show the download button once the grpah is created.
-  output$show_downloadBttn <- renderUI({
+  output$downBtn_crossDemoPlot <- renderUI({
     
     req(plot_cross_demoExposure())
     
     mod_downloadPlot_ui("plot_cross_demoExposure")
     
   })
+  
+  output$downBtn_crossDemoTable <- renderUI({
+    
+    req(tbl_cross_demoExposure())
+    
+    mod_downloadTable_ui("tbl_cross_demoExposure")
+    
+  })
+  
   
   
   
