@@ -26,8 +26,6 @@ occurrence_example_l3 <- readxl::read_excel(
 )
 
 
-
-
 foodex.1 <- readxl::read_xlsx("SampleData/foodex.1.xlsx") %>%
   select(
     -ends_with("_HCODE"),
