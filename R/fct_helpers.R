@@ -35,7 +35,7 @@ calc_bandwidth = function(data, target, group) {
 # Summary Statistics ####
 #' Get a tibble of weighted summary statistics
 #' @noRd
-summarise_weighted <- function(data){
+summarise_weighted <- function(data, ref_value){
   
   # Note the ref_value  
   

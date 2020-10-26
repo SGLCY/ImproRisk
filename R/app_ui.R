@@ -26,7 +26,12 @@ app_ui <- function(request) {
                    menuSubItem("Level 3", tabName = "occurrenceL3")
           ),
           menuItem("FoodEx1", tabName = "foodex1", icon = icon("bread-slice")),
-          menuItem("Tables", tabName = "tables", icon = icon("table")),
+          menuItem("Tables", tabName = "tables", icon = icon("table"),
+                   startExpanded = FALSE,
+                   #menuSubItem("Subjects", tabName = "subjects"),
+                   menuSubItem("Merged data", tabName = "merged"),
+                   menuSubItem("Individual exposure", tabName = "individual")
+          ),
           menuItem("Update Data", tabName = "updateData", icon = icon("file-import")),
           menuItem("Log", tabName = "log",icon = icon("columns")),
           menuItem("ABOUT", tabName = "info", icon = icon("info")),
@@ -57,10 +62,11 @@ app_ui <- function(request) {
                                tableOutput("subInfo_exposure"),
                                width = NULL
                            ),
-                           box(title="Exposure Statistics (adjusted by Population)", 
-                               textOutput("stats_label"),
+                           box(title="Exposure Statistics (μg/Kg b.w.)", 
+                               uiOutput("stats_label"),
                                br(),
-                               tableOutput("tbl_exposure_stats")
+                               tableOutput("tbl_exposure_stats"),
+                               mod_downloadTable_ui("tbl_exposure_stats")
                                ,width = NULL 
                            ),
                            box(width = NULL,
@@ -86,14 +92,6 @@ app_ui <- function(request) {
                                                     ticks = TRUE,
                                                     label = "% decimals"
                                         ),
-                                        # shinyWidgets::noUiSliderInput(
-                                        #   "pct.digits_exposure",
-                                        #   value = 1,
-                                        #   min = 0,
-                                        #   max = 3,
-                                        #   step = 1,
-                                        #   label = "% accuracy"
-                                        # ),
                                         shinyWidgets::prettyCheckbox(
                                           inputId = "show_stats_exposure",
                                           value = TRUE,
@@ -126,10 +124,13 @@ app_ui <- function(request) {
                                tabBox(id = "graphs",width = NULL, 
                                       title= "",
                                       tabPanel(title = "PDF",
-                                               plotOutput("exposure_pdf")
+                                               plotOutput("exposure_pdf"),
+                                               mod_downloadPlot_ui("exposurePDF")
                                       ),
                                       tabPanel(title = "CDF",
-                                               plotOutput("exposure_cdf")
+                                               plotOutput("exposure_cdf"),
+                                               mod_downloadPlot_ui("exposureCDF")
+                                               
                                       )
                                )
                                
@@ -160,7 +161,8 @@ app_ui <- function(request) {
                     column(7,offset = 1,
                            box(
                              
-                             tableOutput("tbl_exposure_statsDemo")
+                             tableOutput("tbl_exposure_statsDemo"),
+                             mod_downloadTable_ui("tbl_exposure_statsDemo")
                              ,width = NULL
                            )
                     )
@@ -202,10 +204,14 @@ app_ui <- function(request) {
                                tabBox(id = "graphsDemo",width = NULL, 
                                       title= "",
                                       tabPanel(title = "PDF",
-                                               plotOutput("exposure_pdfDemo")
+                                               plotOutput("exposure_pdfDemo"),
+                                               mod_downloadPlot_ui("exposure_pdfDemo")
+                                               
                                       ),
                                       tabPanel(title = "CDF",
-                                               plotOutput("exposure_cdfDemo")
+                                               plotOutput("exposure_cdfDemo"),
+                                               mod_downloadPlot_ui("exposure_cdfDemo")
+                                               
                                       )
                                )
                                
@@ -246,7 +252,8 @@ app_ui <- function(request) {
                                   title= "",
                                   tabPanel(title = "Table",
                                            htmlOutput("contr_tbl_title"),
-                                           reactable::reactableOutput("contribution")
+                                           reactable::reactableOutput("tbl_aggr_contribution"),
+                                           mod_downloadTable_ui("tbl_contribution")
                                   ),
                                   tabPanel(title = "Graphs",
                                            uiOutput("contr_UI",inline = TRUE)
@@ -312,14 +319,30 @@ app_ui <- function(request) {
           
           
           # Tables TAB ####
-          tabItem(tabName = "tables",
+          # tabItem(tabName = "subjects",
+          #         h3("Participants in the food survey"),
+          #         box(title = "", 
+          #             #DT::DTOutput("sample_data"),
+          #             width = 12
+          #         ),
+          #         
+          #         #box("Substance Info", mod_showSubstanceInfo_ui("showSubstanceInfo_ui_2"))
+          #         
+          # ),
+          tabItem(tabName = "merged",
                   h3("Consumption and exposure at food consumption occassion"),
                   box(title = "", 
                       DT::DTOutput("sample_data"),
                       width = 12
-                  ),
-                  #box("Substance Info", mod_showSubstanceInfo_ui("showSubstanceInfo_ui_2"))
-                  
+                  )
+          ),
+          tabItem(tabName = "individual",
+                  h3("Participants and individual exposure"),
+                  box(title = "", 
+                      reactable::reactableOutput("tbl_exposure"),
+                      mod_downloadTable_ui("temp_tbl_exposure"),
+                      width = 12
+                  )
           ),
           
           # FOODEX1 TAB ####
@@ -349,10 +372,13 @@ app_ui <- function(request) {
                                   title= "",
                                   tabPanel(title = "Table",
                                            h2("Mean Consumption (grams)"),
-                                           DT::DTOutput("tbl_aggr_consumption")
+                                           DT::DTOutput("tbl_aggr_consumption"),
+                                           mod_downloadTable_ui("tbl_aggr_consumption")
                                   ),
                                   tabPanel(title = "Graph",
-                                           uiOutput("plot_aggr_consumption_UI", inline = TRUE)
+                                           uiOutput("plot_aggr_consumption_UI", inline = TRUE),
+                                           mod_downloadPlot_ui("plot_aggr_consumption")
+                                           
                                   )
                            )
                     ),
@@ -390,7 +416,8 @@ app_ui <- function(request) {
                   fluidRow(
                     column(width = 6,
                            box(width = NULL,
-                               plotOutput("plot_cross_demoExposure")
+                               plotOutput("plot_cross_demoExposure"),
+                               uiOutput("show_downloadBttn")
                                
                            ),
                            box(width = NULL,
@@ -509,9 +536,9 @@ app_ui <- function(request) {
                   box(width = 6, 
                       title = h3("ImproRisk shiny app for Dietary Risk Assessment"),
                       info_improrisk
-                     )
-                  
                   )
+                  
+          )
         )
       )
     )

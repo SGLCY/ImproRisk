@@ -13,6 +13,70 @@ app_server <- function( input, output, session ) {
   callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_1")
   callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_2")
   
+  
+  # Module Plots ####
+  callModule(mod_downloadPlot_server, "exposurePDF", 
+             plot_name = "exposurePDF", 
+             the_plot = exposure_pdf
+  )
+  callModule(mod_downloadPlot_server, "exposureCDF", 
+             plot_name = "exposureCDF", 
+             the_plot = exposure_cdf
+  )
+  
+  callModule(mod_downloadPlot_server, "exposure_pdfDemo", 
+             plot_name = "exposure_pdfDemo", 
+             the_plot = exposure_pdfDemo
+  )
+  
+  callModule(mod_downloadPlot_server, "exposure_cdfDemo", 
+             plot_name = "exposure_cdfDemo", 
+             the_plot = exposure_cdfDemo
+  )
+  
+  
+  callModule(mod_downloadPlot_server, "plot_aggr_consumption", 
+             plot_name = "plot_aggr_consumption", 
+             the_plot = plot_aggr_consumption, width = 14, height  = 10
+  )
+  
+  
+  callModule(mod_downloadPlot_server, "plot_cross_demoExposure", 
+             plot_name = "plot_cross_demoExposure", 
+             the_plot = plot_cross_demoExposure
+  )
+  
+  
+  
+  # Module Download Tables ####
+  
+  callModule(mod_downloadTable_server, "tbl_aggr_consumption",
+             table_name = "tbl_aggr_consumption",
+             the_table = tbl_aggr_consumption)
+  
+  
+  callModule(mod_downloadTable_server, "tbl_exposure_stats",
+             table_name = "tbl_exposure_stats",
+             the_table = tbl_exposure_stats)
+  
+  
+  callModule(mod_downloadTable_server, "tbl_exposure_statsDemo",
+             table_name = "tbl_exposure_statsDemo",
+             the_table = tbl_exposure_statsDemo)
+  
+  callModule(mod_downloadTable_server, "tbl_contribution",
+             table_name = "tbl_contribution",
+             the_table = contribution_filtered)
+  
+  callModule(mod_downloadTable_server, "temp_tbl_exposure",
+             table_name = "temp_tbl_exposure",
+             the_table = temp_tbl_exposure)
+  
+  
+  
+  
+  
+  
   ggplot2::theme_set(ggthemes::theme_clean(base_size = 15)+
                        theme(
                          plot.background = element_blank(),
@@ -26,9 +90,11 @@ app_server <- function( input, output, session ) {
     scenario = NULL,
     title = NULL,
     title_statsDemo =  NULL,
-    exposure_factor = 1,
+    exposure_factor = 7,
+    exposure_frequency= "WEEKLY",
     ref_value = 4,
     demo = c("gender" = "Gender", "area" ="Area", "pop_class" = "Population_Class"),
+    tbl_exposure = NULL,
     sample_size = nrow(tbl_exposure),
     pop_size = sum(tbl_exposure$wcoeff),
     
@@ -56,26 +122,31 @@ app_server <- function( input, output, session ) {
         values_to = "exposure"
       ) %>% 
       dplyr::group_by(scenario) %>% 
-      summarise_weighted() %>% 
+      summarise_weighted(ref_value= rv$ref_value) %>% 
+      mutate(pctOver  = percent(pctOver)) %>% 
+      mutate_at(vars(-scenario, -pctOver), ~ round(.,digits)) %>% 
       tidyr::gather(key, value, - scenario) %>%
       tidyr::pivot_wider(names_from = scenario, values_from = value) %>% 
       {.} %>% 
       dplyr::rename_with(
         ~stringr::str_remove(., "subExp_"),
         dplyr::starts_with("subExp_")
-      ) %>% 
-      data.frame(row.names = "key")
-    
+      ) 
   })
   
   
   output$tbl_exposure_stats <- renderTable({
     
-    tbl_exposure_stats()
+    #style the pctOver row
+    ind <- match("pctOver",tbl_exposure_stats()$key)
+    
+    tbl_exposure_stats()%>% 
+      data.frame(row.names = "key")
+    
   }
   ,rownames = TRUE
-  ,digits = function() input$digits_exposure
-  ,caption = "Table values: µg/Kg b.w."
+  #,digits = function() input$digits_exposure
+  ,caption = as.character(p(br(),"pctOver: % of population over the reference value"))
   )
   
   
@@ -96,7 +167,7 @@ app_server <- function( input, output, session ) {
         values_to = "exposure"
       ) %>% 
       dplyr::group_by(scenario,.data[[input$slct_demo]]) %>% 
-      summarise_weighted() %>% 
+      summarise_weighted(ref_value = rv$ref_value) %>% 
       # summarise(
       #   across(exposure, exposure_summary,.names = "{.fn}")
       # ) %>%
@@ -307,15 +378,6 @@ app_server <- function( input, output, session ) {
     digits     <- input$digits_exposureDemo
     pct.digits <- input$pct.digits_exposureDemo
     bandwidth  <- input$bandwidthDemo
-    #add_stats  <- input$show_stats_exposureDemo
-    
-    # validate(
-    #   need(n.breaks>globals$min.n.breaks && n.breaks <=  globals$max.n.breaks, 
-    #        glue::glue(
-    #          "# of breaks should be:>=  {globals$min.n.breaks} and <= {globals$max.n.breaks}"
-    #        )
-    #   )
-    # )
     
     exp_plot <- pdf_exposureDemo(tbl_exposure,
                                  var_exp = var_to_use,
@@ -324,25 +386,6 @@ app_server <- function( input, output, session ) {
                                  scale = 1.1,
                                  ref_value= ref_value
     )
-    
-    # if(add_stats){
-    #   exp_plot <- 
-    #     exp_plot+
-    #     geom_vline(aes(xintercept=median(.data[[var_to_use]], na.rm = TRUE),
-    #                    color="Median exposure"), linetype="dashed",
-    #                size=1) +
-    #     geom_vline(aes(xintercept=mean(.data[[var_to_use]], na.rm = TRUE),
-    #                    color="Mean exposure"), linetype="dotted",
-    #                size=1) +
-    #     geom_vline(aes(xintercept=ref_value,
-    #                    color="Reference value"), linetype="dotted",
-    #                size=1) +
-    #     scale_color_manual(name = "Statistics", values = c('Median exposure' = "blue", 
-    #                                                        'Mean exposure' = "red"
-    #                                                        , 'Reference value' = "black"
-    #     )
-    #     )
-    # }
     
     # Add the labs
     
@@ -613,7 +656,7 @@ app_server <- function( input, output, session ) {
   
   
   
-  aggr_contribution <- reactive({
+  tbl_aggr_contribution <- reactive({
     
     food_level <- fdx1_levels[[input$slct_level]]
     
@@ -684,9 +727,9 @@ app_server <- function( input, output, session ) {
   })
   
   
-  output$contribution <- reactable::renderReactable({
+  output$tbl_aggr_contribution <- reactable::renderReactable({
     
-    aggr_contribution()
+    tbl_aggr_contribution()
     
   })
   output$contr_tbl_title <- renderText({
@@ -810,10 +853,10 @@ app_server <- function( input, output, session ) {
       tidyr::spread(.data[[vars_cross()[[2]]]], exposure)
     
   }, caption = as.character(h4("Mean exposure (μg/Kg body weight)"))
-   , caption.placement = "top"
+  , caption.placement = "top"
   )
   
-  plot_crosss_demoExposure <- reactive({
+  plot_cross_demoExposure <- reactive({
     
     
     req(length(vars_cross()) == 2)
@@ -849,9 +892,19 @@ app_server <- function( input, output, session ) {
     if(not_good){
       validate(message = "Drag 2 variables from the 'List of demographics' to the 'Cross Demo' box")
     }
-   
-    plot_crosss_demoExposure()
+    
+    plot_cross_demoExposure()
   })
+  
+  # Show the download button once the grpah is created.
+  output$show_downloadBttn <- renderUI({
+    
+    req(plot_cross_demoExposure())
+    
+    mod_downloadPlot_ui("plot_cross_demoExposure")
+    
+  })
+  
   
   
   # Observers ####
@@ -904,8 +957,6 @@ app_server <- function( input, output, session ) {
     
     vars_numeric_ind <- match(vars_numeric, names(sample_consumption))
     
-    match(temp, names(sample_consumption))
-      
     sample_consumption %>% 
       #head(200) %>% 
       DT::datatable(
@@ -937,30 +988,17 @@ app_server <- function( input, output, session ) {
     
   })
   
-  # output$occurrence_l3 <- reactable::renderReactable({
-  #   
-  #   occurrence_example_l3 %>% 
-  #     reactable::reactable(
-  #       searchable = TRUE,
-  #       columnGroups = list(
-  #         colGroup(name = "Min", columns = paste0(scenarios, "_min")),
-  #         colGroup(name = "Mean", columns =  paste0(scenarios, "_mean"))
-  #       )
-  #     )
-  #   
-  # })
-  
   dataset_info <- reactive({
     
     data.frame(
       
       row.names = c("Consumption", 
                     "Occurence"
-                    ),
+      ),
       dataset = c("Subjects_Consumption_EUMENU Lot2 (N=803).xlsx",
-                 "Occurrence - Mercury (Hg) - DK.xlsx"
-                 )
-
+                  "Occurrence - Mercury (Hg) - DK.xlsx"
+      )
+      
     )
     
     
@@ -982,12 +1020,18 @@ app_server <- function( input, output, session ) {
   })
   
   
-  output$stats_label <- renderText({
+  output$stats_label <- renderUI({
     
     s_size <- rv$sample_size
     p_size <- rv$pop_size
     
-    glue::glue('Sample size:{s_size}\nPopulation size: {prettyNum(p_size, big.mark = ",")}')
+    #glue::glue('Sample size:{s_size}\nPopulation size: {prettyNum(p_size, big.mark = ",")}')
+    
+      p('Sample size:', s_size, 
+             br(), 
+             'Population size: ',prettyNum(p_size, big.mark = ",")
+    )
+    
   })
   
   output$tbl_foodex1 <- DT::renderDataTable({
@@ -996,6 +1040,51 @@ app_server <- function( input, output, session ) {
     
   }, filter = "top")
   
+  
+  temp_tbl_exposure <- reactive({
+    
+    
+      tbl_exposure %>% 
+      relocate(
+        subjectid,gender, area, pop_class, age,weight, wcoeff, cons_days, everything() 
+      ) %>% 
+      #mutate_at(all_of(vars_exposure), ~round(., 3)) %>% 
+      {.}
+    
+  })
+  
+  output$tbl_exposure <- reactable::renderReactable({
+    
+    digits <- 3 #input$contr_digitsExp
+    
+    
+    temp_tbl_exposure() %>% 
+      rename(!!!var_names) %>% 
+      reactable::reactable(
+        filterable = TRUE,
+        bordered = TRUE,
+        resizable = TRUE,
+        columns = list(
+          
+          nday_lb = colDef("LB", format = colFormat(digits = digits)),
+          nday_mb = colDef("MB", format = colFormat(digits = digits)),
+          nday_ub = colDef("UB", format = colFormat(digits = digits)),
+          
+          subExp_LB = colDef("LB", format = colFormat(digits = digits)),
+          subExp_MB = colDef("MB", format = colFormat(digits = digits)),
+          subExp_UB = colDef("UB", format = colFormat(digits = digits))
+          
+        ),
+        columnGroups = list(
+          colGroup(name = "N_day", columns = c("nday_lb", "nday_mb", "nday_ub")),
+          colGroup(name = rv$exposure_frequency, columns = c("subExp_LB", "subExp_MB", "subExp_UB"))
+          
+        )
+        
+      ) 
+    
+  })
+  
   # Inntroductions ####
   
   steps <- reactive(data.frame(element = c(NA,
@@ -1003,34 +1092,38 @@ app_server <- function( input, output, session ) {
                                            "#tbl_exposure_stats",
                                            "#graphs",
                                            "#exposure_pdf",
-                                           "#scenario_UI_exposure"
+                                           "#scenario_UI_exposure",
+                                           "#exposurePDF"
                                            
                                            
-                                           ),
-                               intro = c("Welcome! Hit 'Next' to get a tour",
-                                         
-                                         "This table shows basic information on the substance",
-                                         
-                                         "Here, we have the exposure statistics. The values
+  ),
+  intro = c( 
+    htmltools::HTML("<h3>Welcome to ImproRisk!</h3><p>Hit 'Next' to get a tour</p>"),
+    
+    "This table shows basic information on the substance",
+    
+    "Here, we have the exposure statistics. The values
                                          you see are in μg/Kg of body weight and are 
                                          weighted by the population weights",
-                                         
-                                         "There are two graphs to see here. One is
+    
+    "There are two graphs to see here. One is
                                          the Probability distribution of the exposure  in the 'PDF' tab
                                          and the other is the cummultive exposure - in the 'CDF' tab
                                          ",
-                                         
-                                         "
+    
+    "
                                          The PDF of the exposure.This a histogram. The exposure estimates for 
                                          each inndividual is 'binned'and the proportion is calculated.
                                          ",
-                                         
-                                         "Select the exposure scenario from here, and the tables and charts 
-                                         update accordingly"
-                                         
-                                         )
-                               )
-                    )
+    
+    "Select the exposure scenario from here, and the tables and charts 
+                                         update accordingly",
+    
+    "Underneath each plot and table, there is a download button"
+    
+  )
+  )
+  )
   
   observeEvent(input$help_exposure,{
     rintrojs::introjs(session,options = list(steps=steps()))

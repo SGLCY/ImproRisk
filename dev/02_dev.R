@@ -21,6 +21,7 @@ usethis::use_package("tidyr")
 usethis::use_package("forcats")
 usethis::use_package("purrr")
 usethis::use_package("readxl")  
+usethis::use_package("writexl")
 usethis::use_package("ggplot2")  
 usethis::use_package("stringr")
 usethis::use_package("lubridate")
@@ -46,6 +47,8 @@ usethis::use_pipe()
 golem::add_module( name = "showSubstanceInfo" ) # Name of the module
 golem::add_module( name = "slct_scenario" ) # Name of the module
 
+golem::add_module(name = "downloadPlot")
+golem::add_module(name = "downloadTable")
 #golem::add_module( name = "name_of_module2" ) # Name of the module
 
 ## Add helper functions ----
@@ -63,9 +66,9 @@ golem::add_css_file( "custom" )
 
 ## Add internal datasets ----
 ## If you have data in your package
-usethis::use_data_raw( name = "internal_data", open = FALSE ) 
+#usethis::use_data_raw( name = "internal_data", open = FALSE ) 
 
-usethis::use_data(sample_consumption, foodex.1, internal = TRUE, overwrite = TRUE )
+#usethis::use_data(sample_consumption, foodex.1, internal = TRUE, overwrite = TRUE )
 
 
 ## Tests ----

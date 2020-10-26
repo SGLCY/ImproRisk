@@ -18,10 +18,11 @@
 # foodex.1 <- improrisk.shiny:::foodex.1
 # sample_consumption <- improrisk.shiny:::sample_consumption
 
-tbl_foodex_desc <- 
-  foodex.1 %>% 
-  distinct(FOODEX_L1_DESC, FOODEX_L2_DESC, FOODEX_L3_DESC, FOODEX_L4_DESC) %>% 
-  relocate(FOODEX_L1_DESC, FOODEX_L2_DESC, FOODEX_L3_DESC, FOODEX_L4_DESC)
+
+# tbl_foodex_desc <- 
+#   foodex.1 %>% 
+#   distinct(FOODEX_L1_DESC, FOODEX_L2_DESC, FOODEX_L3_DESC, FOODEX_L4_DESC) %>% 
+#   relocate(FOODEX_L1_DESC, FOODEX_L2_DESC, FOODEX_L3_DESC, FOODEX_L4_DESC)
 
 
 fdx1_group_level1 <- c("FOODEX_L1_DESC")
@@ -48,46 +49,57 @@ fdx1_levels_cons <- c(
 
 
 
-tbl_unique_level3 <- 
-  foodex.1 %>% 
-  distinct(FOODEX_L3_DESC, FOODEX_L2_DESC, FOODEX_L1_DESC)
+# tbl_unique_level3 <- 
+#   foodex.1 %>% 
+#   distinct(FOODEX_L3_DESC, FOODEX_L2_DESC, FOODEX_L1_DESC)
 
-temp <- 
-  foodex.1 %>% 
-  distinct(FOODEX_L4_DESC, FOODEX_L4_CODE ) %>% 
-  tibble::deframe()
+# fdx1_l1 <- unique(foodex.1$FOODEX_L1_DESC)
+# fdx1_l2 <- unique(foodex.1$FOODEX_L2_DESC)
+# fdx1_l3 <- unique(foodex.1$FOODEX_L3_DESC)
+# fdx1_l4 <- unique(foodex.1$FOODEX_L4_DESC)
+# 
+# 
+# 
+# sub_info <- 
+#   data.frame(
+#     stringsAsFactors = FALSE,
+#     check.names = FALSE,
+#     
+#     row.names = c("Chemical Substance", "Substance Category","Reference value (μg/Kg b.w.)",
+#                   "Type of Reference value","Frequency"),
+#     values = c("Mercury (Hg)","Contaminant",
+#                "4.00","Tolerable Intake","WEEKLY")
+#   )
 
-foodex.1 %>% 
-  distinct(FOODEX_L4_CODE, FOODEX_L4_DESC) %>% 
-  relocate(FOODEX_L4_DESC) %>% 
-  tibble::deframe()
 
+var_names <- list(
+  # new = #old
+  Gender      = "gender",
+  Age         = "age",
+  'Age group' = "pop_class",
+  Area        = "area",
+  Weight      = "weight",
+  'Consumption days' = "cons_days"
+  
+)
 
+# LB = "nday_lb",
+# MB = "nday_mb",
+# UB = "nday_ub",
+# 
+# LB = "subExp_LB",
+# MB = "subExp_MB",
+# UB = "subExp_UB"
 
-fdx1_l1 <- unique(foodex.1$FOODEX_L1_DESC)
-fdx1_l2 <- unique(foodex.1$FOODEX_L2_DESC)
-fdx1_l3 <- unique(foodex.1$FOODEX_L3_DESC)
-fdx1_l4 <- unique(foodex.1$FOODEX_L4_DESC)
+vars_exposure <- c(
+  "nday_lb",
+  "nday_mb",
+  "nday_ub",
 
-
-
-sub_info <- 
-  # data.frame(
-  #              ~Chemical.Substance, ~`Mercury.(Hg),.MERCURY`,
-  #             "Substance Category",            "Contaminant",
-  #   "Reference value (?g/Kg b.w.)",                   "4.00",
-  #        "Type of Reference value",       "Tolerable Intake",
-  #                           "Type",                 "WEEKLY"
-  #   )
-  data.frame(
-    stringsAsFactors = FALSE,
-    check.names = FALSE,
-    
-    row.names = c("Chemical Substance", "Substance Category","Reference value (μg/Kg b.w.)",
-                  "Type of Reference value","Frequency"),
-    values = c("Mercury (Hg)","Contaminant",
-               "4.00","Tolerable Intake","WEEKLY")
-  )
+  "subExp_LB",
+  "subExp_MB",
+  "subExp_UB"
+)
 
 
 # tab menu items
@@ -106,6 +118,8 @@ tab_items <- tibble::tribble(
   "Level 3",            "occurrenceL3",   "th",
   "Foodex1",            "foodex1",        "th",
   "Tables",             "tables",         "th",
+  "Merged data",        "merged",         "th",
+  "Individual exposure","individual",     "th",
   "Update data",        "updateData",     "th",
   "Log",                "log",            "columns",
   "ABOUT",               "info",           "th"
@@ -180,92 +194,62 @@ info_improrisk <- tagList(
     
     
 )
-#   
-#   This version supports
-#   
-#   - 
-#   
-#   - 
-#   
-#   
-# )
-#   
-#   
-#   
-# 
-# 
-# To update data you will need
-# 
-# - Subjects_Consumption_Template.WeightingCoefficients.xlsx
-#   for the subject and food consumption data 
-# 
-# - Occurence Template - Level 2 & Level 3.xlsm
-#   for the occurrence data in Level 2 and Level 3
-# 
-# Both templates can be found in the improrisk.com website
-# 
-
-# ")
-
-
-
 
 
 # Demo data ####
 
 
 #  TODO Need to use a reactive value in the server for these..
-ref_value <- 4
-exposure_factor = 7
-
-consumption_days <- 
-  sample_consumption %>% 
-  dplyr::group_by(subjectid) %>% 
-  dplyr::summarise(cons_days  = dplyr::n_distinct(day)) %>% 
-  dplyr::ungroup()
-
-
-tbl_subjects <- 
-  sample_consumption %>% 
-  dplyr::distinct(
-    subjectid, 
-    gender, 
-    age,
-    weight,
-    area,
-    pop_class,
-    wcoeff
-  ) %>% 
-  dplyr::left_join(consumption_days)
-
-
-tbl_exposure <- 
-  sample_consumption %>% 
-  dplyr::group_by(
-    subjectid
-  ) %>% 
-  dplyr::summarise(
-    nday_lb = sum(wcoeff_adjusted_refined_exposure_lb, na.rm = TRUE),
-    nday_mb = sum(wcoeff_adjusted_refined_exposure_mb, na.rm = TRUE),
-    nday_ub = sum(wcoeff_adjusted_refined_exposure_ub, na.rm = TRUE)
-  ) %>% 
-  dplyr::left_join(tbl_subjects) %>% 
-  dplyr::mutate(
-    dplyr::across(
-      dplyr::starts_with(("nday_")), ~ ./wcoeff
-    )
-  ) %>% 
-  dplyr::mutate(
-    subExp_LB = (nday_lb/cons_days) * exposure_factor,
-    subExp_MB = (nday_mb/cons_days) * exposure_factor,
-    subExp_UB = (nday_ub/cons_days) * exposure_factor
-  ) %>% 
-  dplyr::ungroup()
+# ref_value <- 4
+# exposure_factor = 7
+# 
+# consumption_days <- 
+#   sample_consumption %>% 
+#   dplyr::group_by(subjectid) %>% 
+#   dplyr::summarise(cons_days  = dplyr::n_distinct(day)) %>% 
+#   dplyr::ungroup()
+# 
+# 
+# tbl_subjects <- 
+#   sample_consumption %>% 
+#   dplyr::distinct(
+#     subjectid, 
+#     gender, 
+#     age,
+#     weight,
+#     area,
+#     pop_class,
+#     wcoeff
+#   ) %>% 
+#   dplyr::left_join(consumption_days)
+# 
+# 
+# tbl_exposure <- 
+#   sample_consumption %>% 
+#   dplyr::group_by(
+#     subjectid
+#   ) %>% 
+#   dplyr::summarise(
+#     nday_lb = sum(wcoeff_adjusted_refined_exposure_lb, na.rm = TRUE),
+#     nday_mb = sum(wcoeff_adjusted_refined_exposure_mb, na.rm = TRUE),
+#     nday_ub = sum(wcoeff_adjusted_refined_exposure_ub, na.rm = TRUE)
+#   ) %>% 
+#   dplyr::left_join(tbl_subjects) %>% 
+#   dplyr::mutate(
+#     dplyr::across(
+#       dplyr::starts_with(("nday_")), ~ ./wcoeff
+#     )
+#   ) %>% 
+#   dplyr::mutate(
+#     subExp_LB = (nday_lb/cons_days) * exposure_factor,
+#     subExp_MB = (nday_mb/cons_days) * exposure_factor,
+#     subExp_UB = (nday_ub/cons_days) * exposure_factor
+#   ) %>% 
+#   dplyr::ungroup()
 
 
 
 # Sortable ####
-
 
 max_2_item_opts <- sortable::sortable_options(
   # inspiration from https://jsbin.com/nacoyah/edit?js,output
@@ -296,23 +280,8 @@ max_2_item_opts <- sortable::sortable_options(
 
 
 max_1_item_opts <- sortable::sortable_options(
-  # inspiration from https://jsbin.com/nacoyah/edit?js,output
-  # Sortable.create(qux, {
-  #   group: {
-  #     name: 'qux',
-  #     put: function (to) {
-  #       return to.el.children.length < 4;
-  #     }
-  #   },
-  #   animation: 100
-  # });
-  
-  # I have not seen a group value be done as an object before this post.
-  # Glad to see `sortable` handle it!
   group = list(
-    # use a group name to allow sharing between lists
     name = "drill_down_group",
-    # add a `put` function that can determine if an element may be placed
     put = htmlwidgets::JS("
       function(to) {
         // only allow a 'put' if there is less than 1 child already
