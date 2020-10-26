@@ -7,6 +7,7 @@
 #' @import ggplot2
 #' @importFrom reactable colDef colFormat colGroup
 #' @importFrom forcats fct_rev fct_inorder fct_reorder fct_infreq fct_inseq
+#' @importFrom glue glue
 #' @noRd
 app_server <- function( input, output, session ) {
   # List the first level callModules here
@@ -262,14 +263,6 @@ app_server <- function( input, output, session ) {
   )
   
   
-  output$exposure_statistics <- renderTable({
-    
-    shinipsum::random_table(10,3, type = "numeric")
-    
-    
-  }, rownames = TRUE, colnames = TRUE)
-  
-  
   
   # Exposure distributions ####
   
@@ -453,7 +446,6 @@ app_server <- function( input, output, session ) {
   
   output$exposure_cdfDemo <- renderPlot({
     
-    #shinipsum::random_ggplot(type = "line")
     exposure_cdfDemo()
   })
   
