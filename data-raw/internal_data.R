@@ -11,18 +11,24 @@ library(janitor)
 # #and can use it. It does not show in the globalenvironment
 
 
+#file <- "SampleData/consumption_sample.xlsx"
+file <- "SampleData/consumption_sample_cyp.xlsx"
+
 sample_consumption <- 
-  readxl::read_xlsx("SampleData/consumption_sample.xlsx") %>% 
+  readxl::read_xlsx(file) %>% 
   janitor::clean_names()
 
 
+#file_occur <- "SampleData/occurrence_example.xlsx"
+file_occur <- "SampleData/occurrence_example_efsa_pb.xlsx"
+
 occurrence_example_l2 <- readxl::read_excel(
-  "SampleData/occurrence_example.xlsx", sheet = "level2"
+  file_occur, sheet = "level2"
 )
 
 
 occurrence_example_l3 <- readxl::read_excel(
-  "SampleData/occurrence_example.xlsx", sheet = "level3"
+  file_occur, sheet = "level3"
 )
 
 
@@ -52,6 +58,17 @@ fdx1_l4 <- unique(foodex.1$FOODEX_L4_DESC)
 
 
 
+# sub_info <- 
+#   data.frame(
+#     stringsAsFactors = FALSE,
+#     check.names = FALSE,
+#     
+#     row.names = c("Chemical Substance", "Substance Category","Reference value (μg/Kg b.w.)",
+#                   "Type of Reference value","Frequency"),
+#     values = c("Mercury (Hg)","Contaminant",
+#                "4.00","Tolerable Intake","WEEKLY")
+#   )
+
 sub_info <- 
   data.frame(
     stringsAsFactors = FALSE,
@@ -59,11 +76,19 @@ sub_info <-
     
     row.names = c("Chemical Substance", "Substance Category","Reference value (μg/Kg b.w.)",
                   "Type of Reference value","Frequency"),
-    values = c("Mercury (Hg)","Contaminant",
-               "4.00","Tolerable Intake","WEEKLY")
+    values = c("Lead (Pb)","Contaminant",
+               "0.63","Benchmark Dose Level (BMDL)","DAILY")
   )
 
-exposure_factor = 7
+# 
+# 
+# Contaminant
+# 0.63
+# Benchmark Dose Level (BMDL)
+# DAILY
+
+
+exposure_factor = 1
 
 consumption_days <- 
   sample_consumption %>% 
@@ -124,10 +149,8 @@ usethis::use_data(sample_consumption,
                   internal = TRUE, overwrite = TRUE )
 
 
+# Foodex1 can be external
+foodex1_classification <- foodex.1
 
-# usethis::use_data(sample_consumption, 
-#                   foodex.1, 
-#                   occurrence_example_l2,
-#                   occurrence_example_l3,
-#                   internal = FALSE, overwrite = TRUE )
+usethis::use_data(foodex1_classification,internal = FALSE, overwrite = TRUE )
 
