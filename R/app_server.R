@@ -88,7 +88,13 @@ app_server <- function( input, output, session ) {
              table_name = "tbl_cross_demoExposure",
              the_table = tbl_cross_demoExposure)
   
+  callModule(mod_downloadTable_server, "occurrence_l3",
+             table_name = "occurrence_l3",
+             the_table = occurrence_l3)
   
+  callModule(mod_downloadTable_server, "occurrence_l2",
+             table_name = "occurrence_l2",
+             the_table = occurrence_l2)
   
   
   ggplot2::theme_set(ggthemes::theme_clean(base_size = 15)+
@@ -104,9 +110,9 @@ app_server <- function( input, output, session ) {
     scenario = NULL,
     title = NULL,
     title_statsDemo =  NULL,
-    exposure_factor = 7,
-    exposure_frequency= "WEEKLY",
-    ref_value = 4,
+    exposure_factor = 1,
+    exposure_frequency= "DAILY",
+    ref_value = 0.63,
     demo = c("gender" = "Gender", "area" ="Area", "pop_class" = "Population_Class"),
     tbl_exposure = NULL,
     sample_size = nrow(tbl_exposure),
@@ -995,16 +1001,27 @@ app_server <- function( input, output, session ) {
     
   })
   
-  
+  occurrence_l2 <- reactive({
+    occurrence_example_l2
+    
+  })
+    
+    
   output$occurrence_l2 <- DT::renderDataTable({
     
-    occurrence_example_l2
+    occurrence_l2()
+    
+  })
+  
+  occurrence_l3 <- reactive({
+    
+    occurrence_example_l3
     
   })
   
   output$occurrence_l3 <- DT::renderDataTable({
     
-    occurrence_example_l3
+    occurrence_l3()
     
   })
   
@@ -1015,8 +1032,12 @@ app_server <- function( input, output, session ) {
       row.names = c("Consumption", 
                     "Occurence"
       ),
-      dataset = c("Subjects_Consumption_EUMENU Lot2 (N=803).xlsx",
-                  "Occurrence - Mercury (Hg) - DK.xlsx"
+      # dataset = c("Subjects_Consumption_EUMENU Lot2 (N=803).xlsx",
+      #             "Occurrence - Mercury (Hg) - DK.xlsx"
+      # )
+      
+      dataset = c("Subjects_Consumption_ex.3 (N=300, Days=3) (CYP Weights).xlsx",
+                  "Occurrence Example-EFSA-Pb.xlsm"
       )
       
     )
@@ -1107,51 +1128,21 @@ app_server <- function( input, output, session ) {
   
   # Inntroductions ####
   
-  steps <- reactive(data.frame(element = c(NA,
-                                           "#subInfo_exposure",
-                                           "#tbl_exposure_stats",
-                                           "#graphs",
-                                           "#exposure_pdf",
-                                           "#scenario_UI_exposure",
-                                           "#exposurePDF"
-                                           
-                                           
-  ),
-  intro = c( 
-    htmltools::HTML("<h3>Welcome to ImproRisk!</h3><p>Hit 'Next' to get a tour</p>"),
+  steps <- reactive(
     
-    "This table shows basic information on the substance",
+    switch(input$tabs,
+           
+           "exposure" = intro_exposure,
+           "exposureDemo" = intro_exposureDemo
+           )
     
-    "Here, we have the exposure statistics. The values
-                                         you see are in μg/Kg of body weight and are 
-                                         weighted by the population weights",
-    
-    "There are two graphs to see here. One is
-                                         the Probability distribution of the exposure  in the 'PDF' tab
-                                         and the other is the cummultive exposure - in the 'CDF' tab
-                                         ",
-    
-    "
-                                         The PDF of the exposure.This a histogram. The exposure estimates for 
-                                         each inndividual is 'binned'and the proportion is calculated.
-                                         ",
-    
-    "Select the exposure scenario from here, and the tables and charts 
-                                         update accordingly",
-    
-    "Underneath each plot and table, there is a download button"
-    
-  )
-  )
-  )
+    )
   
   observeEvent(input$help_exposure,{
+    
     rintrojs::introjs(session,options = list(steps=steps()))
     
   })
-  
-  
-  
   
   
 }

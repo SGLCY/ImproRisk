@@ -14,7 +14,7 @@ app_ui <- function(request) {
     dashboardPage(
       dashboardHeader(title = "ImproRisk", titleWidth = 200),
       dashboardSidebar(
-        sidebarMenu(
+        sidebarMenu(id = "tabs",
           menuItem("Exposure", tabName = "exposure", icon = icon("atom")),
           menuItem("Exposure by Demo", tabName = "exposureDemo", icon = icon("user-friends")),
           menuItem("Contribution", tabName = "contribution", icon = icon("percent")),
@@ -34,7 +34,7 @@ app_ui <- function(request) {
           ),
           menuItem("Update Data", tabName = "updateData", icon = icon("file-import")),
           menuItem("Log", tabName = "log",icon = icon("columns")),
-          menuItem("ABOUT", tabName = "info", icon = icon("info")),
+          menuItem("ABOUT", tabName = "info", icon = icon("info"), selected = TRUE),
           shinyWidgets::actionBttn(
             inputId = "help_exposure",
             label = NULL,
@@ -497,7 +497,9 @@ app_ui <- function(request) {
                   fluidRow(
                     box(title = h3("Occurence at Level 2"),
                         width = 12,
-                        DT::DTOutput("occurrence_l2")
+                        tableOutput("subInfo_occurrenceL2"),
+                        DT::DTOutput("occurrence_l2"),
+                        mod_downloadTable_ui("occurrence_l2")
                     )
                   )
                   
@@ -509,7 +511,10 @@ app_ui <- function(request) {
                   fluidRow(
                     box(title = h3("Occurence at Level 3"),
                         width = 12,
-                        DT::DTOutput("occurrence_l3")
+                        tableOutput("subInfo_occurrenceL3"),
+                        DT::DTOutput("occurrence_l3"),
+                        mod_downloadTable_ui("occurrence_l3")
+                        
                     )
                   )
           ),
