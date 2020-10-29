@@ -473,12 +473,12 @@ app_ui <- function(request) {
                   fluidRow(
                     column(width = 3,
                            box(width = NULL,
-                               fileInput("import_consumption",
+                               fileInput("consumption_file",
                                          "Import Consumption data",
                                          width = NULL
                                ),
                                br(),
-                               fileInput("import_occurrence",
+                               fileInput("occurrence_file",
                                          "Import Occurrence Data"
                                )     
                                

@@ -15,7 +15,7 @@ app_server <- function( input, output, session ) {
   callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_2")
   
   
-  # Module Plots ####
+  # Module Download Plots ####
   callModule(mod_downloadPlot_server, "exposurePDF", 
              plot_name = "exposurePDF", 
              the_plot = exposure_pdf
@@ -107,6 +107,8 @@ app_server <- function( input, output, session ) {
   
   # Reactive Values ####
   rv <- rv(
+    
+    demo_mode = TRUE,
     scenario = NULL,
     title = NULL,
     title_statsDemo =  NULL,
@@ -120,20 +122,37 @@ app_server <- function( input, output, session ) {
     
     show_level1 = NULL, #for the contribution tables
     
-    x_label = "μg/Kg body weight", # somtimeI will give the option to the user to change it
+    x_label = "μg/Kg body weight", # somtime I will give the option to the user to change it
     y_label = "Population" # this might be `sample`? in case of non weighted
   )
   
-  #temp for download
-  foodex1 <- reactive({
-    foodex.1
-  })
   
-  full_data <- reactive({
-    sample_consumption
-  })
+  consumption_file_info <- rv(
+    
+    name     = NULL,
+    size     = NULL,
+    type     = NULL,
+    datapath = NULL
+    
+  )
   
-  #  Exposure Statistics ####
+  occurrence_file_info <- rv(
+    
+    name     = NULL,
+    size     = NULL,
+    type     = NULL,
+    datapath = NULL,
+    
+    sheets_names = NULL
+    
+    
+  )
+  
+  valid_consumption_file <- reactiveVal(TRUE, "valid_consumption")
+  valid_occurrence_file  <- reactiveVal(TRUE, "valid_occurrence")
+  
+  
+  # Exposure Statistics ####
   
   
   tbl_exposure_stats <- reactive({
@@ -176,7 +195,19 @@ app_server <- function( input, output, session ) {
   ,caption = as.character(p(br(),"pctOver: % of population over the reference value"))
   )
   
-  
+  output$stats_label <- renderUI({
+    
+    s_size <- rv$sample_size
+    p_size <- rv$pop_size
+    
+    #glue::glue('Sample size:{s_size}\nPopulation size: {prettyNum(p_size, big.mark = ",")}')
+    
+    p('Sample size:', s_size, 
+      br(), 
+      'Population size: ',prettyNum(p_size, big.mark = ",")
+    )
+    
+  })
   
   tbl_exposure_statsDemo <- reactive({
     
@@ -465,11 +496,9 @@ app_server <- function( input, output, session ) {
     
     level_var <- input$slct_food_levelConsumption
     
-    #level_var <- fdx1_levels_cons[[food_level]]
-    
     if(input$hide_water){
       consumption <- sample_consumption %>% 
-        filter(consumed_food_at_level_1 != water_level1)
+        filter(foodex_l1_desc != water_level1)
     } else {
       consumption <- sample_consumption
     }
@@ -612,14 +641,15 @@ app_server <- function( input, output, session ) {
     
     food_level <- fdx1_levels[[input$slct_level]]
     
+    
+    vars_rename <- 
+      paste0("wcoeff_adjusted_refined_exposure_", tolower(scenarios)) %>% 
+      purrr::set_names(scenarios)
+    
     temp <- 
       sample_consumption %>% 
-      rename(
-        FOODEX_L3_DESC = consumed_food_at_level_3,
-        FOODEX_L2_DESC = consumed_food_at_level_2,
-        FOODEX_L1_DESC = consumed_food_at_level_1
-      ) %>% 
-      rename_with(~scenarios, .cols = contains("refined_exposure")) %>% 
+      #rename_with(~scenarios, .cols = contains("refined_exposure")) %>%
+      rename(vars_rename) %>% 
       group_by(
         across(all_of(food_level))
       ) %>% 
@@ -673,7 +703,6 @@ app_server <- function( input, output, session ) {
   })
   
   
-  
   tbl_aggr_contribution <- reactive({
     
     food_level <- fdx1_levels[[input$slct_level]]
@@ -717,7 +746,7 @@ app_server <- function( input, output, session ) {
                                 filterable = FALSE,
                                 format = colFormat(percent = TRUE, digits =  input$contr_digitsPct)
           ),
-          FOODEX_L1_DESC = colDef(show = rv$show_level1)
+          foodex_l1_desc = colDef(show = rv$show_level1)
         ),
         #fullWidth = FALSE,
         #width = 1000,
@@ -764,7 +793,7 @@ app_server <- function( input, output, session ) {
   contr_graph <- reactive({
     
     top_level <- dplyr::nth(fdx1_levels[[input$slct_level]], -1)
-    second_top_level <- dplyr::nth(fdx1_levels[[input$slct_level]], -2, default = "FOODEX_L1_DESC")
+    second_top_level <- dplyr::nth(fdx1_levels[[input$slct_level]], -2, default = "foodex_l1_desc")
     
     
     # Graph peripherals
@@ -841,7 +870,6 @@ app_server <- function( input, output, session ) {
     
   })
   
-  
   tbl_cross_demoExposure <- reactive({
     
     
@@ -863,13 +891,13 @@ app_server <- function( input, output, session ) {
     
   })
   
-  
   output$tbl_cross_demoExposure <- renderTable({
     
     tbl_cross_demoExposure() %>% 
       tidyr::spread(.data[[vars_cross()[[2]]]], exposure)
     
-  }, caption = as.character(h4("Mean exposure (μg/Kg body weight)"))
+  }
+  , caption = as.character(h4("Mean exposure (μg/Kg body weight)"))
   , caption.placement = "top"
   )
   
@@ -931,10 +959,12 @@ app_server <- function( input, output, session ) {
   })
   
   
+  # Info ####
+  
+  info_improrisk <- renderUI({info_improrisk})
   
   
   # Observers ####
-  
   
   observeEvent({input$slct_demo
     input$slct_scenario_exposureDemo}
@@ -998,15 +1028,14 @@ app_server <- function( input, output, session ) {
       ) %>% 
       DT::formatRound(columns =vars_numeric_ind, digits = 3 )
     
-    
   })
   
   occurrence_l2 <- reactive({
     occurrence_example_l2
     
   })
-    
-    
+  
+  
   output$occurrence_l2 <- DT::renderDataTable({
     
     occurrence_l2()
@@ -1042,9 +1071,7 @@ app_server <- function( input, output, session ) {
       
     )
     
-    
-  }
-  )
+  })
   
   output$dataset_info <- renderTable({
     dataset_info()
@@ -1053,27 +1080,6 @@ app_server <- function( input, output, session ) {
   , caption = ""
   )
   
-  
-  info_improrisk <- renderUI({
-    
-    info_improrisk
-    
-  })
-  
-  
-  output$stats_label <- renderUI({
-    
-    s_size <- rv$sample_size
-    p_size <- rv$pop_size
-    
-    #glue::glue('Sample size:{s_size}\nPopulation size: {prettyNum(p_size, big.mark = ",")}')
-    
-      p('Sample size:', s_size, 
-             br(), 
-             'Population size: ',prettyNum(p_size, big.mark = ",")
-    )
-    
-  })
   
   output$tbl_foodex1 <- DT::renderDataTable({
     
@@ -1085,7 +1091,7 @@ app_server <- function( input, output, session ) {
   temp_tbl_exposure <- reactive({
     
     
-      tbl_exposure %>% 
+    tbl_exposure %>% 
       relocate(
         subjectid,gender, area, pop_class, age,weight, wcoeff, cons_days, everything() 
       ) %>% 
@@ -1126,6 +1132,24 @@ app_server <- function( input, output, session ) {
     
   })
   
+  #temp for download
+  foodex1 <- reactive({
+    foodex.1
+  })
+  
+  full_data <- reactive({
+    sample_consumption
+  })
+  
+  
+  #  Update Data ####
+  
+  
+  
+  
+  
+  
+  
   # Inntroductions ####
   
   steps <- reactive(
@@ -1134,9 +1158,9 @@ app_server <- function( input, output, session ) {
            
            "exposure" = intro_exposure,
            "exposureDemo" = intro_exposureDemo
-           )
-    
     )
+    
+  )
   
   observeEvent(input$help_exposure,{
     
