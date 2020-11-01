@@ -16,3 +16,4 @@ $run_dev.*
 ^SampleData$
 ^README SOS\.txt$
 ^temp_scripting\.R$
+^Scripts$
