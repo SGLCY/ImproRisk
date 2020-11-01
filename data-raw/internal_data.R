@@ -4,72 +4,65 @@
 
 
 library(dplyr, warn.conflicts = FALSE)
-library(janitor)
+devtools::load_all()
 
 # # Load and clean names
 # #Also, I saved it in R/sysdata.rda and  this lod autmtically in the pacjage for
 # #and can use it. It does not show in the globalenvironment
 
 
-#file <- "SampleData/consumption_sample.xlsx"
-file <- "SampleData/consumption_sample_cyp.xlsx"
 
-sample_consumption <- 
-  readxl::read_xlsx(file) %>% 
-  janitor::clean_names()
+# FOODEX ####
 
-
-#file_occur <- "SampleData/occurrence_example.xlsx"
-file_occur <- "SampleData/occurrence_example_efsa_pb.xlsx"
-
-occurrence_example_l2 <- readxl::read_excel(
-  file_occur, sheet = "level2"
-)
-
-
-occurrence_example_l3 <- readxl::read_excel(
-  file_occur, sheet = "level3"
-)
-
-
-foodex.1 <- readxl::read_xlsx("SampleData/foodex.1.xlsx") %>%
+foodex.1 <- readxl::read_xlsx("SampleData/Foodex.1.xlsx") %>%
   select(
     -ends_with("_HCODE"),
     -ends_with("_ID")
   ) %>%
-  mutate(across(everything(), as.factor))
+  mutate(across(everything(), as.factor)) %>% 
+  janitor::clean_names()
 
 
 tbl_foodex_desc <- 
   foodex.1 %>% 
-  distinct(FOODEX_L1_DESC, FOODEX_L2_DESC, FOODEX_L3_DESC, FOODEX_L4_DESC) %>% 
-  relocate(FOODEX_L1_DESC, FOODEX_L2_DESC, FOODEX_L3_DESC, FOODEX_L4_DESC)
+  distinct(foodex_l1_desc, foodex_l2_desc, foodex_l3_desc, foodex_l4_desc) %>% 
+  relocate(foodex_l1_desc, foodex_l2_desc, foodex_l3_desc, foodex_l4_desc)
 
 tbl_unique_level3 <- 
   foodex.1 %>% 
-  distinct(FOODEX_L3_DESC, FOODEX_L2_DESC, FOODEX_L1_DESC)
+  distinct(foodex_l3_desc, foodex_l2_desc, foodex_l1_desc)
 
 
-
-fdx1_l1 <- unique(foodex.1$FOODEX_L1_DESC)
-fdx1_l2 <- unique(foodex.1$FOODEX_L2_DESC)
-fdx1_l3 <- unique(foodex.1$FOODEX_L3_DESC)
-fdx1_l4 <- unique(foodex.1$FOODEX_L4_DESC)
-
+fdx1_l1 <- unique(foodex.1$foodex_l1_desc)
+fdx1_l2 <- unique(foodex.1$foodex_l2_desc)
+fdx1_l3 <- unique(foodex.1$foodex_l3_desc)
+fdx1_l4 <- unique(foodex.1$foodex_l4_desc)
 
 
-# sub_info <- 
-#   data.frame(
-#     stringsAsFactors = FALSE,
-#     check.names = FALSE,
-#     
-#     row.names = c("Chemical Substance", "Substance Category","Reference value (μg/Kg b.w.)",
-#                   "Type of Reference value","Frequency"),
-#     values = c("Mercury (Hg)","Contaminant",
-#                "4.00","Tolerable Intake","WEEKLY")
-#   )
+# Consumption  ####
 
-sub_info <- 
+sample_tbl_consumption <- 
+  readxl::read_xlsx("SampleData/sample_consumption_CYP300.xlsx") %>% 
+  janitor::clean_names()
+
+
+# Occurrence ####
+
+file_occur <- "SampleData/sample_occurrence_EFSA_Pb.xlsx"
+
+sample_occurrence_l2 <- readxl::read_excel(
+  file_occur, sheet = "Level2"
+) %>% 
+  purrr::set_names(occur_l2_names)
+
+sample_occurrence_l3 <- readxl::read_excel(
+  file_occur, sheet = "Level3"
+) %>% 
+  purrr::set_names(occur_l3_names)
+
+
+# TODO Here I need to read form the file
+sample_substance_info <- 
   data.frame(
     stringsAsFactors = FALSE,
     check.names = FALSE,
@@ -80,72 +73,54 @@ sub_info <-
                "0.63","Benchmark Dose Level (BMDL)","DAILY")
   )
 
-# 
-# 
-# Contaminant
-# 0.63
-# Benchmark Dose Level (BMDL)
-# DAILY
+
+exposure_factor = if(sample_substance_info$values[5]=="DAILY") {1} else {7}
+
+sample_dataset_info <- 
+data.frame(
+  stringsAsFactors = FALSE,
+  row.names = c("Consumption", 
+                "Occurence"
+  ),
+  dataset = c("Subjects_Consumption_ex.3 (N=300, Days=3) (CYP Weights).xlsx",
+              "Occurrence Example-EFSA-Pb.xlsm"
+  )
+  
+)
 
 
-exposure_factor = 1
-
-consumption_days <- 
-  sample_consumption %>% 
-  dplyr::group_by(subjectid) %>% 
-  dplyr::summarise(cons_days  = dplyr::n_distinct(day)) %>% 
-  dplyr::ungroup()
 
 
-tbl_subjects <- 
-  sample_consumption %>% 
-  dplyr::distinct(
-    subjectid, 
-    gender, 
-    age,
-    weight,
-    area,
-    pop_class,
-    wcoeff
-  ) %>% 
-  dplyr::left_join(consumption_days)
+# CREATE ####
 
+sample_tbl_subjects <- improrisk.shiny:::create_tbl_subjects(sample_tbl_consumption)
 
-tbl_exposure <- 
-  sample_consumption %>% 
-  dplyr::group_by(
-    subjectid
-  ) %>% 
-  dplyr::summarise(
-    nday_lb = sum(wcoeff_adjusted_refined_exposure_lb, na.rm = TRUE),
-    nday_mb = sum(wcoeff_adjusted_refined_exposure_mb, na.rm = TRUE),
-    nday_ub = sum(wcoeff_adjusted_refined_exposure_ub, na.rm = TRUE)
-  ) %>% 
-  dplyr::left_join(tbl_subjects) %>% 
-  dplyr::mutate(
-    dplyr::across(
-      dplyr::starts_with(("nday_")), ~ ./wcoeff
-    )
-  ) %>% 
-  dplyr::mutate(
-    subExp_LB = (nday_lb/cons_days) * exposure_factor,
-    subExp_MB = (nday_mb/cons_days) * exposure_factor,
-    subExp_UB = (nday_ub/cons_days) * exposure_factor
-  ) %>% 
-  dplyr::ungroup()
+sample_tbl_merged <- improrisk.shiny:::create_tbl_merged(sample_tbl_consumption,
+                                                        sample_occurrence_l2,
+                                                        sample_occurrence_l3
+                                                        )
 
+sample_tbl_exposure <- improrisk.shiny:::create_tbl_exposure(sample_tbl_merged, 
+                                                     sample_tbl_subjects, 
+                                                     exposure_factor)
 
-usethis::use_data(sample_consumption, 
+usethis::use_data(
+                  sample_occurrence_l2,
+                  sample_occurrence_l3,
+                  
+                  sample_tbl_consumption,
+                  sample_tbl_exposure,
+                  sample_tbl_merged,
+                  sample_tbl_subjects,
+                  
+                  sample_dataset_info,
+                  
                   foodex.1, 
-                  occurrence_example_l2,
-                  occurrence_example_l3,
-                  consumption_days,
-                  fdx1_l1, fdx1_l2,  fdx1_l3, fdx1_l4,
-                  sub_info,
-                  tbl_exposure,
                   tbl_foodex_desc,
-                  tbl_subjects,
                   tbl_unique_level3,
+                  fdx1_l1, fdx1_l2,  fdx1_l3, fdx1_l4,
+                  sample_substance_info,
+                  
                   internal = TRUE, overwrite = TRUE )
 
 

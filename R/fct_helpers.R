@@ -1,16 +1,22 @@
 
 
 
-label_ref_value <- function(ref_value){
+
+#'Label the reference value
+#'@details if the user does not provide ref value then we have NA
+#'@noRd
+label_ref_value <- function(ref_value, ...){
   
-  label <- glue::glue("Reference value: {ref_value} μg/Kw b.w.")
-  
-  stringr::str_wrap(label,16)
+  if(not_null(ref_value)){
+    label <- glue::glue("Reference value: {ref_value} μg/Kw b.w.")
+    
+    stringr::str_wrap(label, ...)
+  } else NULL
   
 }
 
 #' Calculate bandwidth for the ggridges plot
-#' @details Stolen from {ggridges} packages
+#' @details Stolen from {ggridges} package
 #' @noRd
 calc_bandwidth = function(data, target, group) {
   
@@ -35,9 +41,12 @@ calc_bandwidth = function(data, target, group) {
 # Summary Statistics ####
 #' Get a tibble of weighted summary statistics
 #' @noRd
-summarise_weighted <- function(data, ref_value){
+summarise_weighted <- function(data, ref_value = NULL){
   
   # Note the ref_value  
+  if(is.null(ref_value)){
+    ref_value <- NA
+  }
   
   data %>% 
     dplyr::summarise(
@@ -72,7 +81,7 @@ summarise_weighted <- function(data, ref_value){
 slct_scenario <- function(tab_name, label = "Scenario", choices){
   
   inputId =  paste0("slct_scenario_", tab_name)
-
+  
   shinyWidgets::radioGroupButtons(
     
     inputId  = inputId,
@@ -108,7 +117,7 @@ pdf_exposure <- function(data,
                          accuracy = 0.1, 
                          #ref_line = NULL,
                          digits = 3
-                         ){
+){
   
   
   range_exp <- range(data[[var_exp]])
@@ -137,14 +146,13 @@ pdf_exposure <- function(data,
       , breaks = breaks,geom= "text"
       , aes(label = percent(..count../ sum(..count..),
                             accuracy = accuracy
-                            ),
-            y = ..count../sum(..count..)
-            )
+      ),
+      y = ..count../sum(..count..)
+      )
       , vjust = -0.5
     )+
     scale_x_continuous(breaks = breaks, labels = round(breaks, digits = digits))+
     scale_y_continuous(labels = percent)+
-    #geom_vline(xintercept = ref_line)+
     theme(
       panel.grid.minor.x = element_blank()
     )
@@ -152,6 +160,13 @@ pdf_exposure <- function(data,
 }
 
 
+#'Plot of Cummulative exposure distribution
+#'@details Plots either single or multigroup CDF depending if you
+#'supply a `var_group`
+#'@param data The tbl_exposure() for Individuals
+#'@param var_expp  String. The variable name for the exposure values. This depends on the scenario
+#'@param var_group   String.Is there a grouping in the data? Usually demographic
+#'@param ref_value Numeric. The reference value if any
 
 
 cdf_exposure <- function(data,
@@ -171,18 +186,15 @@ cdf_exposure <- function(data,
     
   }
   
-    p +
+  p +
     stat_ecdf(pad = FALSE)+
     scale_y_continuous(labels = scales::percent)+
     geom_vline(xintercept = ref_value, linetype = "dashed" )+
     annotate("text", x = ref_value+0.05*ref_value, y = 0.51,
-             hjust = 0, label = label_ref_value(ref_value)
+             hjust = 0, label = label_ref_value(ref_value, width  =  16)
     )
   
-  
 }
-
-
 
 
 #'  PDF exposure by Group
@@ -212,7 +224,7 @@ pdf_exposureDemo <- function(data,
     geom_vline(aes(xintercept = ref_value), linetype="dotted")+
     annotate("text", x = ref_value+0.05*ref_value, y = n_group+0.5,
              hjust = 0, 
-             label= label_ref_value(ref_value)
+             label= label_ref_value(ref_value,width = 16)
     )
   
   
@@ -225,12 +237,12 @@ pdf_exposureDemo <- function(data,
 
 #' Pdf ecosure by group - Freq_poly
 pdf_exposureDemo2 <- function(data,
-                             var_exp, 
-                             var_group,
-                             bins, 
-                             #accuracy = 0.1, 
-                             #ref_line = NULL,
-                             digits = 3
+                              var_exp, 
+                              var_group,
+                              bins, 
+                              #accuracy = 0.1, 
+                              #ref_line = NULL,
+                              digits = 3
 ){
   
   range_exp <- range(data[[var_exp]])
@@ -251,18 +263,6 @@ pdf_exposureDemo2 <- function(data,
       , pad = TRUE
       
     )+
-    # stat_bin(
-    #   position = "identity"
-    #   , bins = bins
-    #   , breaks = breaks,geom= "text", 
-    #   aes(label = percent(..count../ sum(..count..),
-    #                       accuracy = 0.1),
-    #       y = ..count../sum(..count..)
-    #     
-    #       )
-    #   , vjust = -0.5
-    #   , pad = TRUE
-  # )+
     scale_x_continuous(breaks = breaks, labels = round(breaks, 3))+
     scale_y_continuous(labels = percent)+
     theme(
@@ -274,19 +274,20 @@ pdf_exposureDemo2 <- function(data,
 
 # Mean Consumption ####
 #' Aggregate consumption data by food level
-#' @param consumption The table of consumption
+#' @param merged The table of merged data
+#' @param subjects The table of subjects
 #' @param var String. The variable in the data for the food level. This is passed
 #' within the tbl_aggr_consumption() reactive. 
 #' @return A  tibble. Aggregated consumption by Food Level
 #' @details This function is called from the server to create the aggregated table. See tbl_aggr_consumption reactive()
 #' @noRd
-aggr_consumption_by_group <- function(consumption, var){
+aggr_consumption_by_group <- function(merged, subjects, var){
   
   
-  sample_size = nrow(tbl_subjects)
-    
-    
-  consumption %>% 
+  sample_size = nrow(subjects)
+  
+  out <- 
+    merged %>% 
     group_by(
       subjectid, .data[[var]]
     ) %>% 
@@ -296,7 +297,7 @@ aggr_consumption_by_group <- function(consumption, var){
     ungroup() %>% 
     tidyr::complete(.data[[var]], subjectid, fill = list(ttl_cons =  0)) %>% 
     left_join(
-      tbl_subjects
+      subjects,by = "subjectid"
     ) %>% 
     mutate(daily_cons = ttl_cons/cons_days,
            consumed   = if_else(ttl_cons != 0, 1, 0)
@@ -321,6 +322,10 @@ aggr_consumption_by_group <- function(consumption, var){
     #   "Consumer based (gr)"   = consumer
     # ) %>% 
     {.}
-  
+
+    # in case NaNs appear where no consumption is made
+  out %>% 
+    tidyr::replace_na(list(consumer = 0))
 }
- 
+
+

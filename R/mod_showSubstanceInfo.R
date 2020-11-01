@@ -26,7 +26,7 @@ mod_showSubstanceInfo_server <- function(input, output, session){
     
     #shinipsum::random_DT(10,4)
     
-    sub_info
+    substance_info
     
   })
   
