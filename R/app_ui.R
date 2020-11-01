@@ -15,38 +15,42 @@ app_ui <- function(request) {
       dashboardHeader(title = "ImproRisk", titleWidth = 200),
       dashboardSidebar(
         sidebarMenu(id = "tabs",
-          menuItem("Exposure", tabName = "exposure", icon = icon("atom")),
-          menuItem("Exposure by Demo", tabName = "exposureDemo", icon = icon("user-friends")),
-          menuItem("Contribution", tabName = "contribution", icon = icon("percent")),
-          menuItem("Explore Consumption", tabName = "consumption", icon = icon("utensils")),
-          menuItem("Drill down", tabName = "drillDown", icon = icon("chart-bar")),
-          menuItem("Occurrence", tabName = "occurrence", icon = icon("flask"),
-                   startExpanded = FALSE,
-                   menuSubItem("Level 2", tabName = "occurrenceL2"),
-                   menuSubItem("Level 3", tabName = "occurrenceL3")
-          ),
-          menuItem("FoodEx1", tabName = "foodex1", icon = icon("bread-slice")),
-          menuItem("Tables", tabName = "tables", icon = icon("table"),
-                   startExpanded = FALSE,
-                   #menuSubItem("Subjects", tabName = "subjects"),
-                   menuSubItem("Merged data", tabName = "merged"),
-                   menuSubItem("Individual exposure", tabName = "individual")
-          ),
-          menuItem("Update Data", tabName = "updateData", icon = icon("file-import")),
-          menuItem("Log", tabName = "log",icon = icon("columns")),
-          menuItem("ABOUT", tabName = "info", icon = icon("info"), selected = TRUE),
-          shinyWidgets::actionBttn(
-            inputId = "help_exposure",
-            label = NULL,
-            style = "material-circle", 
-            color = "default",
-            size = "xs",
-            icon = icon("question")
-          ) 
-          #tableOutput("substance_info")
-          #,DT::dataTableOutput("substance_info")
-          
-          
+                    menuItem("Exposure", tabName = "exposure", icon = icon("atom")),
+                    menuItem("Exposure by Demo", tabName = "exposureDemo", icon = icon("user-friends")),
+                    menuItem("Contribution", tabName = "contribution", icon = icon("percent")),
+                    menuItem("Explore Consumption", tabName = "consumption", icon = icon("utensils")),
+                    menuItem("Drill down", tabName = "drillDown", icon = icon("chart-bar")),
+                    menuItem("Occurrence", tabName = "occurrence", icon = icon("flask"),
+                             startExpanded = FALSE,
+                             menuSubItem("Level 2", tabName = "occurrenceL2"),
+                             menuSubItem("Level 3", tabName = "occurrenceL3")
+                    ),
+                    menuItem("FoodEx1", tabName = "foodex1", icon = icon("bread-slice")),
+                    menuItem("Tables", tabName = "tables", icon = icon("table"),
+                             startExpanded = FALSE,
+                             #menuSubItem("Subjects", tabName = "subjects"),
+                             menuSubItem("Merged data", tabName = "merged"),
+                             menuSubItem("Individual exposure", tabName = "individual")
+                    ),
+                    menuItem("Update Data", tabName = "updateData", icon = icon("file-import"),
+                             startExpanded = FALSE,
+                             menuSubItem("Consumption", tabName = "consumptionUpdate"),
+                             menuSubItem("Occurrence", tabName = "occurrenceUpdate")
+                    ),
+                    menuItem("Log", tabName = "log",icon = icon("columns")),
+                    menuItem("ABOUT", tabName = "info", icon = icon("info"), selected = TRUE),
+                    shinyWidgets::actionBttn(
+                      inputId = "help_exposure",
+                      label = NULL,
+                      style = "material-circle", 
+                      color = "default",
+                      size = "xs",
+                      icon = icon("question")
+                    ) 
+                    #tableOutput("substance_info")
+                    #,DT::dataTableOutput("substance_info")
+                    
+                    
         )
       ),
       dashboardBody(
@@ -319,31 +323,24 @@ app_ui <- function(request) {
           
           
           # Tables TAB ####
-          # tabItem(tabName = "subjects",
-          #         h3("Participants in the food survey"),
-          #         box(title = "", 
-          #             #DT::DTOutput("sample_data"),
-          #             width = 12
-          #         ),
-          #         
-          #         #box("Substance Info", mod_showSubstanceInfo_ui("showSubstanceInfo_ui_2"))
-          #         
-          # ),
           tabItem(tabName = "merged",
                   h3("Consumption and exposure at food consumption occassion"),
                   box(title = "", 
-                      DT::DTOutput("sample_data"),
-                      mod_downloadTable_ui("full_data"),
+                      DT::DTOutput("tbl_merged"),
+                      mod_downloadTable_ui("tbl_merged"),
                       width = 12
                   )
           ),
           tabItem(tabName = "individual",
                   h3("Participants and individual exposure"),
-                  box(title = "", 
-                      reactable::reactableOutput("tbl_exposure"),
-                      mod_downloadTable_ui("temp_tbl_exposure"),
-                      width = 12
+                  fluidRow(
+                    box(title = "", 
+                        reactable::reactableOutput("tbl_exposure"),
+                        mod_downloadTable_ui("tbl_exposure"),
+                        width = 12
+                    )
                   )
+                  
           ),
           
           # FOODEX1 TAB ####
@@ -468,23 +465,58 @@ app_ui <- function(request) {
           ),
           
           # Update Data #####
-          tabItem(tabName = "updateData",
-                  h3("Import Consumption and Occurrene Data"),
+          tabItem(tabName = "consumptionUpdate",
+                  h3("Import Consumption Data"),
                   fluidRow(
-                    column(width = 3,
+                    column(width = 2,
                            box(width = NULL,
                                fileInput("consumption_file",
                                          "Import Consumption data",
                                          width = NULL
                                ),
-                               br(),
-                               fileInput("occurrence_file",
-                                         "Import Occurrence Data"
-                               )     
-                               
+                               tags$script('$( "#consumption_file" ).on( "click", function() { this.value = null; });'),
+                               shinyjs::hidden(actionButton("accept_consumption", "Submit the data"))
                            )
                            
                            
+                           
+                    ),
+                    col_10(
+                      box(width = NULL,
+                          title = "Progress",
+                          uiOutput("cons_progress_UI")
+                          
+                      )
+                      
+                      
+                    )
+                  )
+                  
+                  
+          ),
+          tabItem(tabName = "occurrenceUpdate",
+                  h3("Import Occurrene Data"),
+                  fluidRow(
+                    column(width = 2,
+                           box(width = NULL, 
+                               fileInput("occurrence_file",
+                                         "Import Occurrence Data"
+                               ),
+                               # clear input to force recalc if same name is uploaded
+                               # https://stackoverflow.com/questions/34441584/re-upload-same-file-shiny-r
+                               tags$script('$( "#occurrence_file" ).on( "click", function() { this.value = null; });'),
+                               #br(),
+                               shinyjs::hidden(actionButton("accept_occurrence", "Submit the data"))
+                           )
+                           
+                           
+                           
+                    ),
+                    col_10(
+                      box(width = NULL, 
+                          title = "Progress",
+                          uiOutput("occur_progress_UI")
+                      )
                     )
                   )
                   
@@ -577,6 +609,8 @@ golem_add_external_resources <- function(){
     # Add here other external resources
     # for example, you can add shinyalert::useShinyalert() 
     , rintrojs::introjsUI()
+    , shinyjs::useShinyjs()
+    , shinyFeedback::useShinyFeedback()
   )
 }
 

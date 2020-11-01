@@ -11,8 +11,8 @@
 #' @noRd
 app_server <- function( input, output, session ) {
   # List the first level callModules here
-  callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_1")
-  callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_2")
+  #callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_1")
+  #callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_2")
   
   
   # Module Download Plots ####
@@ -69,9 +69,9 @@ app_server <- function( input, output, session ) {
              table_name = "tbl_contribution",
              the_table = contribution_filtered)
   
-  callModule(mod_downloadTable_server, "temp_tbl_exposure",
-             table_name = "temp_tbl_exposure",
-             the_table = temp_tbl_exposure)
+  callModule(mod_downloadTable_server, "tbl_exposure",
+             table_name = "tbl_exposure",
+             the_table = tbl_exposure)
   
   
   callModule(mod_downloadTable_server, "foodex1",
@@ -79,9 +79,9 @@ app_server <- function( input, output, session ) {
              the_table = foodex1)
   
   
-  callModule(mod_downloadTable_server, "full_data",
-             table_name = "full_data",
-             the_table = full_data)
+  callModule(mod_downloadTable_server, "tbl_merged",
+             table_name = "tbl_merged",
+             the_table = tbl_merged)
   
   
   callModule(mod_downloadTable_server, "tbl_cross_demoExposure",
@@ -105,27 +105,49 @@ app_server <- function( input, output, session ) {
                        )
   )
   
-  # Reactive Values ####
+  
+  # Reactive Values ---------------------------------------------------------
+  
+  
   rv <- rv(
     
-    demo_mode = TRUE,
     scenario = NULL,
     title = NULL,
     title_statsDemo =  NULL,
-    exposure_factor = 1,
-    exposure_frequency= "DAILY",
-    ref_value = 0.63,
-    demo = c("gender" = "Gender", "area" ="Area", "pop_class" = "Population_Class"),
-    tbl_exposure = NULL,
-    sample_size = nrow(tbl_exposure),
-    pop_size = sum(tbl_exposure$wcoeff),
+    
+    # initialise with the sample_ files
+    exposure_factor    = if(sample_substance_info$values[5]=="DAILY") {1} else {7},
+    exposure_frequency = sample_substance_info$values[5],
+    ref_value          = as.numeric(sample_substance_info$values[3]),
+    sample_size        = nrow(sample_tbl_subjects) , 
+    pop_size           = sum(sample_tbl_subjects$wcoeff),
+    
+    
+    demo               = c("gender" = "Gender", "area" ="Area", "pop_class" = "Population_Class"),
     
     show_level1 = NULL, #for the contribution tables
     
     x_label = "μg/Kg body weight", # somtime I will give the option to the user to change it
-    y_label = "Population" # this might be `sample`? in case of non weighted
+    y_label = "Population", # this might be `sample`? in case of non weighted
+    
+    substance_info = sample_substance_info
   )
   
+  
+  datasets <- rv(
+    
+    tbl_consumption = sample_tbl_consumption,
+    tbl_subjects    = sample_tbl_subjects,
+    tbl_merged      = sample_tbl_merged,
+    tbl_exposure    = sample_tbl_exposure,
+    
+    occurrence_l2   = sample_occurrence_l2,
+    occurrence_l3   = sample_occurrence_l3,
+    
+    #dataset_info    =  sample_dataset_info,
+    consumption_file  = sample_dataset_info$dataset[1],
+    occurrence_file   = sample_dataset_info$dataset[2]
+  )
   
   consumption_file_info <- rv(
     
@@ -148,12 +170,12 @@ app_server <- function( input, output, session ) {
     
   )
   
-  valid_consumption_file <- reactiveVal(TRUE, "valid_consumption")
-  valid_occurrence_file  <- reactiveVal(TRUE, "valid_occurrence")
+  
+  valid_consumption_file <- reactiveVal(FALSE, "valid_consumption")
+  valid_occurrence_file  <- reactiveVal(FALSE, "valid_occurrence")
   
   
   # Exposure Statistics ####
-  
   
   tbl_exposure_stats <- reactive({
     
@@ -161,7 +183,7 @@ app_server <- function( input, output, session ) {
     
     digits  <- input$digits_exposure
     
-    tbl_exposure %>% 
+    tbl_exposure() %>% 
       tidyr::pivot_longer(
         cols = starts_with("subExp_"),
         names_to = "scenario",
@@ -200,8 +222,6 @@ app_server <- function( input, output, session ) {
     s_size <- rv$sample_size
     p_size <- rv$pop_size
     
-    #glue::glue('Sample size:{s_size}\nPopulation size: {prettyNum(p_size, big.mark = ",")}')
-    
     p('Sample size:', s_size, 
       br(), 
       'Population size: ',prettyNum(p_size, big.mark = ",")
@@ -218,7 +238,7 @@ app_server <- function( input, output, session ) {
     
     pct.digits <- input$pct.digits_exposureDemo
     
-    tbl_exposure %>% 
+    tbl_exposure() %>% 
       tidyr::pivot_longer(
         cols = starts_with("subExp_"),
         names_to = "scenario",
@@ -226,9 +246,6 @@ app_server <- function( input, output, session ) {
       ) %>% 
       dplyr::group_by(scenario,.data[[input$slct_demo]]) %>% 
       summarise_weighted(ref_value = rv$ref_value) %>% 
-      # summarise(
-      #   across(exposure, exposure_summary,.names = "{.fn}")
-      # ) %>%
       {.} %>% 
       ungroup() %>% 
       dplyr::mutate(
@@ -259,10 +276,10 @@ app_server <- function( input, output, session ) {
   # Other ####
   
   
-  output$substance_info <- renderTable({sub_info}, rownames = TRUE, colnames = FALSE,  width = "50px")
+  output$substance_info <- renderTable({substance_info()}, rownames = TRUE, colnames = FALSE,  width = "50px")
   
   # output$substance_info <- DT::renderDataTable({
-  #   sub_info %>% 
+  #   substance_info() %>% 
   #     tibble::rownames_to_column() %>% 
   #     DT::datatable(
   #       filter = "none",
@@ -281,7 +298,7 @@ app_server <- function( input, output, session ) {
   # Note: The module way has some issues in the rendering of the table
   lapply(tab_items$tabName, function(tab_name){
     
-    output[[paste0("subInfo_", tab_name)]] <- renderTable({sub_info}, rownames = TRUE, colnames = FALSE)      
+    output[[paste0("subInfo_", tab_name)]] <- renderTable({substance_info()}, rownames = TRUE, colnames = FALSE)      
   })
   
   # Create an output binding of select_scenario inputs for each Tab
@@ -308,7 +325,7 @@ app_server <- function( input, output, session ) {
     
     req(input$slct_scenario_exposure)
     
-    ref_value  <- isolate(rv$ref_value)
+    ref_value  <- rv$ref_value%||%NA_real_  #NULL ref_value brakes down the plot. Thanks @_ColinFay
     scenario   <- input$slct_scenario_exposure
     
     var_to_use <- paste0("subExp_",scenario)
@@ -330,7 +347,7 @@ app_server <- function( input, output, session ) {
       )
     )
     
-    exp_plot <- pdf_exposure(tbl_exposure,
+    exp_plot <- pdf_exposure(tbl_exposure(),
                              var_exp = var_to_use,
                              bins  = n.breaks +1,
                              digits = digits,
@@ -346,7 +363,7 @@ app_server <- function( input, output, session ) {
         geom_vline(aes(xintercept=mean(.data[[var_to_use]], na.rm = TRUE),
                        color="Mean exposure"), linetype="dotted",
                    size=1) +
-        geom_vline(aes(xintercept=ref_value,
+        geom_vline(aes(xintercept=ref_value,  
                        color="Reference value"), linetype="dotted",
                    size=1) +
         scale_color_manual(name = "Statistics", values = c('Median exposure' = "blue", 
@@ -366,6 +383,9 @@ app_server <- function( input, output, session ) {
       )+
       NULL
     
+    
+    catch_plotError(exp_plot)
+    
   })
   
   output$exposure_pdf <- renderPlot({
@@ -377,7 +397,7 @@ app_server <- function( input, output, session ) {
   
   exposure_cdf <- reactive({
     
-    ref_value <- isolate(rv$ref_value)
+    ref_value <- rv$ref_value
     
     scenario <- input$slct_scenario_exposure
     var_to_use <- paste0("subExp_",scenario)
@@ -386,10 +406,11 @@ app_server <- function( input, output, session ) {
     x_label <- rv$x_label
     y_label <- rv$y_label
     
-    cdf_exposure(tbl_exposure,
-                 var_exp = var_to_use,
-                 ref_value = ref_value
-    )+
+    cdf_plot <- 
+      cdf_exposure(tbl_exposure(),
+                   var_exp = var_to_use,
+                   ref_value = ref_value
+      )+
       labs(
         title = title,
         x  = x_label,
@@ -397,6 +418,9 @@ app_server <- function( input, output, session ) {
       )+
       NULL
     
+    catch_plotError(cdf_plot)
+    
+    cdf_plot
   })
   
   output$exposure_cdf <- renderPlot({
@@ -414,8 +438,9 @@ app_server <- function( input, output, session ) {
         input$bandwidthDemo>0
     )
     
-    
-    ref_value  <- isolate(rv$ref_value)
+    #NULL ref_value brakes down the plot in aes(xintercept= NULL). 
+    # see  the %||% function in golem_utils_server.R  Thanks @_ColinFay
+    ref_value  <- rv$ref_value%||%NA_real_  
     scenario   <- input$slct_scenario_exposureDemo
     
     var_to_use <- paste0("subExp_",scenario)
@@ -429,7 +454,7 @@ app_server <- function( input, output, session ) {
     pct.digits <- input$pct.digits_exposureDemo
     bandwidth  <- input$bandwidthDemo
     
-    exp_plot <- pdf_exposureDemo(tbl_exposure,
+    exp_plot <- pdf_exposureDemo(tbl_exposure(),
                                  var_exp = var_to_use,
                                  var_group =  var_group,
                                  bandwith  = bandwidth,
@@ -437,15 +462,20 @@ app_server <- function( input, output, session ) {
                                  ref_value= ref_value
     )
     
-    # Add the labs
     
-    exp_plot +
+    # Add the labs
+    exp_plot <- 
+      exp_plot +
       labs(
         title = title,
         x     = "",
         y     = y_label
       )+
       NULL
+    
+    catch_plotError(exp_plot)
+    
+    exp_plot
     
   })
   
@@ -457,7 +487,7 @@ app_server <- function( input, output, session ) {
   
   exposure_cdfDemo <- reactive({
     
-    ref_value <- isolate(rv$ref_value)
+    ref_value <- rv$ref_value
     
     scenario <- input$slct_scenario_exposureDemo
     var_to_use <- paste0("subExp_",scenario)
@@ -467,7 +497,7 @@ app_server <- function( input, output, session ) {
     x_label <- rv$x_label
     y_label <- rv$y_label
     
-    cdf_exposure(tbl_exposure,
+    cdf_exposure(tbl_exposure(),
                  var_exp = var_to_use,
                  var_group = var_group,
                  ref_value = ref_value
@@ -497,13 +527,17 @@ app_server <- function( input, output, session ) {
     level_var <- input$slct_food_levelConsumption
     
     if(input$hide_water){
-      consumption <- sample_consumption %>% 
+      consumption <- 
+        #sample_consumption %>% 
+        tbl_merged() %>% 
         filter(foodex_l1_desc != water_level1)
     } else {
-      consumption <- sample_consumption
+      consumption <- 
+        #sample_consumption
+        tbl_merged()
     }
     
-    aggr_consumption_by_group(consumption, level_var)
+    aggr_consumption_by_group(consumption, tbl_subjects(), level_var)
     
     
   })
@@ -526,7 +560,6 @@ app_server <- function( input, output, session ) {
   
   
   plot_aggr_consumption <- reactive({
-    
     
     level_var <- input$slct_food_levelConsumption
     
@@ -612,6 +645,7 @@ app_server <- function( input, output, session ) {
         )
     }
     
+    catch_plotError(p)
     
     p
     
@@ -647,7 +681,8 @@ app_server <- function( input, output, session ) {
       purrr::set_names(scenarios)
     
     temp <- 
-      sample_consumption %>% 
+      #sample_consumption %>% 
+      tbl_merged() %>% 
       #rename_with(~scenarios, .cols = contains("refined_exposure")) %>%
       rename(vars_rename) %>% 
       group_by(
@@ -872,7 +907,6 @@ app_server <- function( input, output, session ) {
   
   tbl_cross_demoExposure <- reactive({
     
-    
     req(length(vars_cross()) == 2)
     
     vars_cross <- vars_cross()
@@ -881,7 +915,7 @@ app_server <- function( input, output, session ) {
     y <- vars_cross[[2]]
     
     
-    tbl_exposure %>% 
+    tbl_exposure() %>% 
       group_by(
         .data[[x]], .data[[y]]
       ) %>% 
@@ -911,7 +945,8 @@ app_server <- function( input, output, session ) {
     x <- vars_cross[[1]]
     y <- vars_cross[[2]]
     
-    tbl_cross_demoExposure() %>%
+    plot_cross <- 
+      tbl_cross_demoExposure() %>%
       ggplot(aes(x=.data[[x]], y=exposure, fill = .data[[y]]))+
       geom_col(width=0.5, position = position_dodge(width = 0.6))+
       geom_text(aes(label = round(exposure, 3))
@@ -927,6 +962,10 @@ app_server <- function( input, output, session ) {
         title = glue::glue("Mean exposure across {x} and {y}")
       )
     
+    
+    catch_plotError(plot_cross)
+    
+    plot_cross
     
   })
   
@@ -982,7 +1021,7 @@ app_server <- function( input, output, session ) {
       
       # Estimate bandwidth and range
       
-      bw <- calc_bandwidth(tbl_exposure,
+      bw <- calc_bandwidth(tbl_exposure(),
                            target  = paste0("subExp_", input$slct_scenario_exposureDemo),
                            group   = input$slct_demo
       )
@@ -996,25 +1035,67 @@ app_server <- function( input, output, session ) {
     }
   )
   
-  # output$title_statsDemo <- renderText(
-  #   rv$title_statsDemo
-  # )
-  # 
   
   
-  #Sample Data ####
   
-  output$sample_data <- DT::renderDataTable({
+  #  DATA ####
+  
+  tbl_consumption <- reactive({
+    
+    datasets$tbl_consumption
+    
+  })
+  
+  tbl_subjects <- reactive({
+    
+    datasets$tbl_subjects
+    
+  })
+  
+  observeEvent(tbl_subjects(),{
+    
+    rv$sample_size <- nrow(tbl_subjects())
+    
+    rv$pop_size <- sum(tbl_subjects()$wcoeff)
+    
+  })
+  
+  
+  tbl_merged <- reactive({
+    
+    
+    datasets$tbl_merged
+    
+  })
+  
+  tbl_exposure <- reactive({
+    
+    datasets$tbl_exposure %>% 
+      relocate(vars_order_1)
+  })
+  
+  
+  substance_info <- reactive({
+    
+    rv$substance_info
+  })
+  
+  
+  output$tbl_merged <- DT::renderDataTable({
     
     
     vars_numeric <- 
-      sample_consumption %>% select_if(is.numeric) %>% 
-      select(contains("exp")) %>% names()
+      tbl_merged() %>% 
+      select_if(is.numeric) %>% 
+      select(contains("exp")) %>% 
+      names()
     
-    vars_numeric_ind <- match(vars_numeric, names(sample_consumption))
+    vars_numeric_ind <- match(vars_numeric, names(tbl_merged()))
     
-    sample_consumption %>% 
-      #head(200) %>% 
+    tbl_merged() %>% 
+      mutate(
+        across(c(serial, subjectid, day), as.factor)
+      ) %>% 
       DT::datatable(
         caption = "The final table"
         , style = "bootstrap"
@@ -1031,7 +1112,8 @@ app_server <- function( input, output, session ) {
   })
   
   occurrence_l2 <- reactive({
-    occurrence_example_l2
+    
+    datasets$occurrence_l2
     
   })
   
@@ -1044,7 +1126,7 @@ app_server <- function( input, output, session ) {
   
   occurrence_l3 <- reactive({
     
-    occurrence_example_l3
+    datasets$occurrence_l3
     
   })
   
@@ -1057,21 +1139,16 @@ app_server <- function( input, output, session ) {
   dataset_info <- reactive({
     
     data.frame(
-      
-      row.names = c("Consumption", 
-                    "Occurence"
-      ),
-      # dataset = c("Subjects_Consumption_EUMENU Lot2 (N=803).xlsx",
-      #             "Occurrence - Mercury (Hg) - DK.xlsx"
-      # )
-      
-      dataset = c("Subjects_Consumption_ex.3 (N=300, Days=3) (CYP Weights).xlsx",
-                  "Occurrence Example-EFSA-Pb.xlsm"
-      )
+      stringsAsFactors = FALSE,
+      row.names = c("Consumption",
+                    "Occurence"),
+      dataset = c(datasets$consumption_file,
+                  datasets$occurrence_file)
       
     )
     
   })
+  
   
   output$dataset_info <- renderTable({
     dataset_info()
@@ -1088,29 +1165,19 @@ app_server <- function( input, output, session ) {
   }, filter = "top")
   
   
-  temp_tbl_exposure <- reactive({
-    
-    
-    tbl_exposure %>% 
-      relocate(
-        subjectid,gender, area, pop_class, age,weight, wcoeff, cons_days, everything() 
-      ) %>% 
-      #mutate_at(all_of(vars_exposure), ~round(., 3)) %>% 
-      {.}
-    
-  })
-  
   output$tbl_exposure <- reactable::renderReactable({
     
     digits <- 3 #input$contr_digitsExp
     
-    
-    temp_tbl_exposure() %>% 
+    tbl_exposure() %>% 
+      #temp_tbl_exposure() %>% 
       rename(!!!var_names) %>% 
       reactable::reactable(
         filterable = TRUE,
         bordered = TRUE,
         resizable = TRUE,
+        defaultPageSize = 20,
+        #height = 650,
         columns = list(
           
           nday_lb = colDef("LB", format = colFormat(digits = digits)),
@@ -1132,25 +1199,366 @@ app_server <- function( input, output, session ) {
     
   })
   
-  #temp for download
+  #temp for download using the module
   foodex1 <- reactive({
     foodex.1
   })
   
-  full_data <- reactive({
-    sample_consumption
+  
+  # Update DATA -------------------------------------------------------------
+  
+  
+  #> Consunption ####
+  # Capture the details of the consumption file
+  observeEvent(input$consumption_file,{
+    
+    consumption_file_info$name = input$consumption_file$name
+    consumption_file_info$size = input$consumption_file$size
+    #consumption_file_info$type = input$consumption_file$type
+    consumption_file_info$type =  tools::file_ext(input$consumption_file$name)
+    consumption_file_info$datapath = input$consumption_file$datapath
+    
+    datasets$consumption_file = consumption_file_info$name
+    
+    
+  })
+  
+  # temp_tbl_consumption <- reactive({
+  #   
+  #   req(input$consumption_file)
+  #   
+  #   data <- 
+  #   load_consumption(consumption_file_info$name, 
+  #                    consumption_file_info$datapath) 
+  #   
+  #   # Perform checks
+  #   check_varsConsumption(data)
+  #   check_fdx1_coding(data)
+  #   check_fewRows(data)
+  #   
+  #   #if ll ok, then enforce column class and return
+  #   data %>% 
+  #     mutate(
+  #       across(all_of(vars_numeric_consumption), as.numeric),
+  #       across(all_of(vars_character_consumption), as.character)
+  #     )
+  #   
+  # })
+  
+  
+  cons_progress_UI <- reactive({
+    
+    validate(
+      need(input$consumption_file, "Import the consumption file in .xlsx format")
+    )
+    
+    if(!consumption_file_info$type == "xlsx") {
+      
+      error_notExcel() 
+      validate("Please import an .xlsx file")
+    }
+    
+    # checks
+    Consumption <- 
+      load_consumption(consumption_file_info$name, 
+                       consumption_file_info$datapath) 
+    
+    # Perform checks
+    check_varsConsumption(Consumption)
+    check_fdx1_coding(Consumption)
+    check_fewRows(Consumption)
+    
+    #if ll ok, then enforce column class and return
+    Consumption <- 
+      Consumption %>% 
+      mutate(
+        across(all_of(vars_numeric_consumption), as.numeric),
+        across(all_of(vars_character_consumption), as.character)
+      )
+    
+    datasets$tbl_consumption <- Consumption
+    
+    # After I update the file
+    #since the following triggers calculation
+    valid_consumption_file(TRUE)
+    
+    tagList(
+      
+      tags$h3("Your Consumption data have been checked and succesfully uploaded",style= "colour: '#3CB371'")
+    )
+    
   })
   
   
-  #  Update Data ####
+  
+  output$cons_progress_UI <- renderUI({
+
+    cons_progress_UI()
+
+  })
   
   
+  observe({
+    
+    if(valid_consumption_file() == TRUE){
+      
+      # Consumption changes all datasets
+      # observeEvent will execute the following witihin an isolatescope
+      
+      datasets$tbl_subjects     = create_tbl_subjects(datasets$tbl_consumption)
+      
+      datasets$tbl_merged       = create_tbl_merged(datasets$tbl_consumption,
+                                                    datasets$occurrence_l2,
+                                                    datasets$occurrence_l3
+      )
+      
+      datasets$tbl_exposure = create_tbl_exposure(datasets$tbl_merged,
+                                                  datasets$tbl_subjects,
+                                                  rv$exposure_factor
+      )
+      
+      showModal(modalDialog(
+        title = "Datasets are updated",
+        "Consumption data is replaced and calculations are done!"
+      ))
+      
+      valid_consumption_file(FALSE)
+      shinyjs::hide("accept_consumption")
+      
+    }
+    
+    
+  })
   
   
+
+# #> Occurrence -----------------------------------------------------------
+
+  
+  observeEvent(input$occurrence_file,{
+    
+    occurrence_file_info$name = input$occurrence_file$name
+    occurrence_file_info$size = input$occurrence_file$size
+    #consumption_file_info$type = input$consumption_file$type
+    occurrence_file_info$type =  tools::file_ext(input$occurrence_file$name)
+    occurrence_file_info$datapath = input$occurrence_file$datapath
+    
+    datasets$occurrence_file = occurrence_file_info$name
+    
+    
+  })
+  
+
+  occur_progress_UI <- reactive({
+    
+    validate(
+      need(input$occurrence_file, "Import the occurrence file")
+    )
+    
+    # Is it an Excel file?
+    file_type <- tools::file_ext(input$occurrence_file$name)
+    
+    if(!file_type == "xlsx") {
+      
+      error_notExcel()
+      validate("Please import an .xlsx file")
+    }
+    
+   
+    # Correct sheets?
+    check_sheets_occur(input$occurrence_file$datapath)
+    
+    
+    # OK, read and perform checks inside the sheet
+    path  = input$occurrence_file$datapath
+    
+    Level2 <- 
+      load_occurrence(path, sheet = "Level2")
+    
+    Level3 <- 
+      load_occurrence(path, sheet = "Level3")
+    
+    substance_info <- 
+      readxl::read_xlsx(path,
+                        range = range_subInfo,
+                        col_names = FALSE,
+                        sheet = "Level2") %>% 
+      purrr::set_names(c("row.name","value"))
+    
+    # checks
+    
+    check_fdx1_descr(Level2, "level2")
+    
+    check_fdx1_descr(Level3, "level3")
+    
+    # not really needed beacuse I use the level 3 fro mappings, but lets
+    check_fdx1_descr(Level3, "level2")
+    
+    #ALL OK (lets say..)
+    #show_success_alert("Occurence data are all set")
+    
+    # Update the occurence relevant files
+    datasets$occurrence_l2 <- Level2
+    datasets$occurrence_l3 <- Level3
+    rv$substance_info      <- substance_info
+    
+    #  after i Update the files!!!
+    # because the below trigger the calculations
+    valid_occurrence_file(TRUE)
+    
+    tagList(
+
+      tags$h3("Your Occurrence data have been checked and succesfully uploaded",style= "colour: '#3CB371'")
+    )
+    
+    
+  })
+  
+  # output$occur_progress_UI <- renderUI({
+  #   
+  #   occur_progress_UI()
+  #   
+  # })
   
   
+  observe({
+    
+    if(valid_occurrence_file()  == TRUE){
+      
+      output$occur_progress_UI <- renderUI({
+        
+        #occur_progress_UI()
+        NULL
+      })
+      
+    } else {
+      
+      output$occur_progress_UI <- renderUI({
+        
+        occur_progress_UI()
+        
+      })
+      
+    }
+  },priority = 1)
   
-  # Inntroductions ####
+  
+  output$imported_occur_l2 <- DT::renderDT({
+    
+    req(temp_occurrence_l2())
+    
+    out <- temp_occurrence_l2() %>%
+      DT::datatable(
+        caption = "Your uploaded occurrence Level 2 table",
+        style = "bootstrap"
+        , rownames = FALSE
+        , options = list(
+          #paging = TRUE,
+          scrollX = TRUE, scrollY = "500px"
+        )
+      )
+    
+    shinyjs::show("accept_occurrence",anim = TRUE, animType = "fade")
+    
+    out
+  })
+  
+  output$imported_occur_l3 <- DT::renderDT({
+    
+    req(temp_occurrence_l3())
+    
+    out <- temp_occurrence_l3() %>%
+      DT::datatable(
+        caption = "Your uploaded occurrence Level 3 table",
+        style = "bootstrap"
+        , rownames = FALSE
+        , options = list(
+          #paging = TRUE,
+          scrollX = TRUE, scrollY = "500px"
+        )
+      )
+    
+    #shinyjs::show("accept_occurrence",anim = TRUE, animType = "fade")
+    
+    out
+  })
+  
+  
+  output$temp_substance_info <- renderTable({
+    
+    validate(
+      need(input$occurrence_file, "Import the occurrence file"),
+      need(occurrence_file_info$type == "xlsx", "Please import an .xlsx file")
+    )
+    temp_substance_info()
+    
+  })
+  
+  
+  observe ({
+    
+    if(valid_occurrence_file()) {
+      
+      # firt the substance_info  to get the exposure_factor
+      
+      freq <-
+        rv$substance_info %>%
+        filter(row.name =="Type") %>% pull(value)
+      
+      if(freq ==  "DAILY") {
+        rv$exposure_factor = 1
+        
+        rv$exposure_frequency = "DAILY"
+      } else{
+        
+        rv$exposure_factor = 7
+        rv$exposure_frequency = "WEEKLY"
+        
+      }
+      
+      # I need it as NULL to avoid plotting if no value is given in the occurrence import
+      ref <- rv$substance_info$value[3]
+      rv$ref_value <- if(not_na(ref)) as.numeric(ref) else NULL
+      
+      rv$substance_info <-
+        data.frame(
+          stringsAsFactors = FALSE,
+          check.names = FALSE,
+          
+          row.names = c("Chemical Substance",
+                        "Substance Category",
+                        "Reference value (μg/Kg b.w.)",
+                        "Type of Reference value",
+                        "Frequency"),
+          values = rv$substance_info$value
+        )
+      
+      # Occurrence changes the following datasets
+      datasets$tbl_merged    = create_tbl_merged(datasets$tbl_consumption,
+                                                 datasets$occurrence_l2,
+                                                 datasets$occurrence_l3
+      )
+      
+      datasets$tbl_exposure = create_tbl_exposure(datasets$tbl_merged,
+                                                  datasets$tbl_subjects,
+                                                  rv$exposure_factor
+      ) 
+      
+      
+      showModal(modalDialog(
+        title = "Occurrence datasets are updated",
+        "Occurrence data is replaced and calculations are done!"
+      ))
+      
+      valid_occurrence_file(FALSE)
+      
+      #shinyjs::hide("accept_occurrence")
+    }
+  }#, ignoreInit = TRUE
+  , priority = 0)
+  
+  
+  # Introductions ####
   
   steps <- reactive(
     
@@ -1169,4 +1577,156 @@ app_server <- function( input, output, session ) {
   })
   
   
-}
+  # OLD CODE ####
+  
+  # temp_occurrence_l2 <- reactive({
+  #   
+  #   req(input$occurrence_file)
+  #   
+  #   path   = occurrence_file_info$datapath
+  #   
+  #   data <- 
+  #   load_occurrence(path, sheet = "Level2")
+  #   
+  #   
+  #   # checks
+  #   
+  #   check_fdx1_descr(data, "level2")
+  #   
+  #   
+  #   # If all ok then
+  #   
+  #   data
+  # })
+  # 
+  # 
+  # temp_occurrence_l3 <- reactive({
+  #   
+  #   req(input$occurrence_file)
+  #   
+  #   path   = occurrence_file_info$datapath
+  #   
+  #   load_occurrence(path, sheet = "Level3")
+  #   
+  # })
+  # 
+  # temp_substance_info <- reactive({
+  #   
+  #   req(input$occurrence_file)
+  #   
+  #   path   = occurrence_file_info$datapath
+  #   
+  #   
+  #   readxl::read_xlsx(path,
+  #                     range = range_subInfo,
+  #                     col_names = FALSE,
+  #                     sheet = "Level2") %>% 
+  #     purrr::set_names(c("row.name","value"))
+  #   
+  # })
+  # 
+  
+  # observeEvent(input$accept_occurrence, {
+  #   
+  #   # firt the substance_info  to get the exposure_factor
+  #   
+  #   freq <- 
+  #     temp_substance_info() %>% 
+  #     filter(row.name =="Type") %>% pull(value)
+  #   
+  #   if(freq ==  "DAILY") {
+  #     rv$exposure_factor = 1
+  #     
+  #     rv$exposure_frequency = "DAILY"
+  #   } else{
+  #     
+  #     rv$exposure_factor = 7
+  #     rv$exposure_frequency = "WEEKLY"
+  #     
+  #   }
+  #   
+  #   # I need it as NULL to avoid plotting if no value is given in the occurrence import
+  #   ref <- temp_substance_info()$value[3]
+  #   rv$ref_value <- if(not_na(ref)) as.numeric(ref) else NULL
+  #   
+  #   rv$substance_info <- 
+  #     data.frame(
+  #       stringsAsFactors = FALSE,
+  #       check.names = FALSE,
+  #       
+  #       row.names = c("Chemical Substance", 
+  #                     "Substance Category",
+  #                     "Reference value (μg/Kg b.w.)",
+  #                     "Type of Reference value",
+  #                     "Frequency"),
+  #       values = temp_substance_info()$value
+  #     )
+  #   
+  #   # Occurrence changes the following datasets
+  #   # observeEvent will execute the following witihin an isolatescope
+  #   
+  #   datasets$occurrence_l2 = temp_occurrence_l2()
+  #   
+  #   datasets$occurrence_l3 = temp_occurrence_l3()
+  #   
+  #   datasets$tbl_merged    = create_tbl_merged(datasets$tbl_consumption,
+  #                                              datasets$occurrence_l2,
+  #                                              datasets$occurrence_l3
+  #   )
+  #   
+  #   datasets$tbl_exposure = create_tbl_exposure(datasets$tbl_merged,
+  #                                               datasets$tbl_subjects,
+  #                                               rv$exposure_factor
+  #   ) %>% 
+  #     # relocate(
+  #     #   subjectid,gender, area, pop_class, age,weight, wcoeff, cons_days, everything() 
+  #     # ) %>% 
+  #     {.}
+  #   
+  #   
+  #   showModal(modalDialog(
+  #     title = "Occurrence datasets are updated",
+  #     "Occurrence data is replaced and calculations are done!"
+  #   ))
+  #   
+  #   shinyjs::hide("accept_occurrence")
+  #   
+  # }, ignoreInit = TRUE)
+  
+  
+  # observeEvent(input$accept_consumption, {
+  #   
+  #   # Consumption changes all datasets
+  #   # observeEvent will execute the following witihin an isolatescope
+  #   
+  #   datasets$tbl_consumption  = temp_tbl_consumption()
+  #   
+  #   
+  #   datasets$tbl_subjects     = create_tbl_subjects(datasets$tbl_consumption)
+  #   
+  #   datasets$tbl_merged       = create_tbl_merged(datasets$tbl_consumption,
+  #                                                 datasets$occurrence_l2,
+  #                                                 datasets$occurrence_l3
+  #   )
+  #   
+  #   datasets$tbl_exposure = create_tbl_exposure(datasets$tbl_merged,
+  #                                               datasets$tbl_subjects,
+  #                                               rv$exposure_factor
+  #   ) %>% 
+  #     # relocate(
+  #     #   subjectid,gender, area, pop_class, age,weight, wcoeff, cons_days, everything() 
+  #     # ) %>% 
+  #     {.}
+  #   
+  #   showModal(modalDialog(
+  #     title = "Datasets are updated",
+  #     "Consumption data is replaced and calculations are done!"
+  #   ))
+  #   
+  #   shinyjs::hide("accept_consumption")
+  #   
+  # }, ignoreInit = TRUE)
+  
+  
+  }
+  
