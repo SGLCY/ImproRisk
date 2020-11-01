@@ -156,7 +156,7 @@ exposure_summary <- list(
 vars_needed_consumption <- c(
   
   "serial", "subjectid", "day", 
-  "foodname", "foodex_l4_code", 
+  "foodname","amountfood", "foodex_l4_code", 
   "gender", "area", "pop_class", 
   "age","weight", "wcoeff"
   
