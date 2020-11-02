@@ -27,6 +27,17 @@ fdx1_levels_cons <- c(
 )
 
 
+# I may use it in the server to rename the column names in the datasets
+# This is in the format 'old' = 'new', so I can only subset the vector
+#TODO perhaps do one with 'new' = 'old' to use with dplyr::rename()?
+fdx_names <- c(
+  #
+  "foodex_l1_desc" = "FoodEx L1 item",
+  "foodex_l2_desc" = "FoodEx L2 item",
+  "foodex_l3_desc" = "FoodEx L3 item",
+  "foodex_l4_desc" = "FoodEx L4 item"
+)
+
 
 # fdx1_l1_desc <- unique(foodex.1$foodex_l1_desc)
 # fdx1_l2_desc <- unique(foodex.1$foodex_l2_desc)

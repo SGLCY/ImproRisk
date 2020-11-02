@@ -33,11 +33,20 @@ tbl_unique_level3 <-
   distinct(foodex_l3_desc, foodex_l2_desc, foodex_l1_desc)
 
 
-fdx1_l1 <- unique(foodex.1$foodex_l1_desc)
-fdx1_l2 <- unique(foodex.1$foodex_l2_desc)
-fdx1_l3 <- unique(foodex.1$foodex_l3_desc)
-fdx1_l4 <- unique(foodex.1$foodex_l4_desc)
+# fdx1_l1 <- unique(foodex.1$foodex_l1_desc)
+# fdx1_l2 <- unique(foodex.1$foodex_l2_desc)
+# fdx1_l3 <- unique(foodex.1$foodex_l3_desc)
+# fdx1_l4 <- unique(foodex.1$foodex_l4_desc)
 
+fdx1_l1_desc <- unique(foodex.1$foodex_l1_desc)
+fdx1_l2_desc <- unique(foodex.1$foodex_l2_desc)
+fdx1_l3_desc <- unique(foodex.1$foodex_l3_desc)
+fdx1_l4_desc <- unique(foodex.1$foodex_l4_desc)
+
+fdx1_l1_code <- unique(foodex.1$foodex_l1_code)
+fdx1_l2_code <- unique(foodex.1$foodex_l2_code)
+fdx1_l3_code <- unique(foodex.1$foodex_l3_code)
+fdx1_l4_code <- unique(foodex.1$foodex_l4_code)
 
 # Consumption  ####
 
@@ -118,7 +127,8 @@ usethis::use_data(
                   foodex.1, 
                   tbl_foodex_desc,
                   tbl_unique_level3,
-                  fdx1_l1, fdx1_l2,  fdx1_l3, fdx1_l4,
+                  fdx1_l1_desc, fdx1_l2_desc,  fdx1_l3_desc, fdx1_l4_desc,
+                  fdx1_l1_code, fdx1_l2_code,  fdx1_l3_code, fdx1_l4_code,
                   sample_substance_info,
                   
                   internal = TRUE, overwrite = TRUE )
