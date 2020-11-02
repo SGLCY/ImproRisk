@@ -4,6 +4,7 @@
 
 #'Label the reference value
 #'@details if the user does not provide ref value then we have NA
+#'@param ref_value Numeric. The reference value
 #'@noRd
 label_ref_value <- function(ref_value, ...){
   
@@ -108,7 +109,7 @@ percent <- function(x, ...){
 #'Histogram for the exposure statistics
 #'@param data The Exposure table by subject
 #'@param var_exp Variaable that holds the individuaal exposure
-#'@param binsHow How many bins?
+#'@param bins How many bins?
 #'@param accuracy Rounding digits in percentages
 #'@param digits Round digits in exposure values in x - axis
 pdf_exposure <- function(data, 
@@ -164,7 +165,7 @@ pdf_exposure <- function(data,
 #'@details Plots either single or multigroup CDF depending if you
 #'supply a `var_group`
 #'@param data The tbl_exposure() for Individuals
-#'@param var_expp  String. The variable name for the exposure values. This depends on the scenario
+#'@param var_exp  String. The variable name for the exposure values. This depends on the scenario
 #'@param var_group   String.Is there a grouping in the data? Usually demographic
 #'@param ref_value Numeric. The reference value if any
 
@@ -199,6 +200,12 @@ cdf_exposure <- function(data,
 
 #'  PDF exposure by Group
 #'  Compare distribtuion across groups
+#'  @param data The data
+#'  @param var_exp  String. The exposure variable.Differes depending the scenario
+#'  @param var_group String. The grouping variable
+#'  @param bandwidth Numeric.The bandwidth for the density plots
+#'  @param scale Numeric
+#'  @param ref_value Numeric. The reference value
 #'  @noRd
 pdf_exposureDemo <- function(data,
                              var_exp,
@@ -236,6 +243,7 @@ pdf_exposureDemo <- function(data,
 
 
 #' Pdf ecosure by group - Freq_poly
+#' @noRd
 pdf_exposureDemo2 <- function(data,
                               var_exp, 
                               var_group,
