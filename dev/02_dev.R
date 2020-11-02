@@ -43,6 +43,7 @@ usethis::use_package("kableExtra")
 usethis::use_package("DT")
 usethis::use_package("htmltools")
 usethis::use_package("htmlwidgets")
+usethis::use_package("shinyFeedback")
 
 # usethis::use_package("ggthemes")
 usethis::use_pipe()
