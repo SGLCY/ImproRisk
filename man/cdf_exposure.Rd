@@ -9,11 +9,11 @@ cdf_exposure(data, var_exp, var_group = NULL, ref_value)
 \arguments{
 \item{data}{The tbl_exposure() for Individuals}
 
+\item{var_exp}{String. The variable name for the exposure values. This depends on the scenario}
+
 \item{var_group}{String.Is there a grouping in the data? Usually demographic}
 
 \item{ref_value}{Numeric. The reference value if any}
-
-\item{var_expp}{String. The variable name for the exposure values. This depends on the scenario}
 }
 \description{
 Plot of Cummulative exposure distribution

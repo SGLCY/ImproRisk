@@ -11,11 +11,11 @@ pdf_exposure(data, var_exp, bins, accuracy = 0.1, digits = 3)
 
 \item{var_exp}{Variaable that holds the individuaal exposure}
 
+\item{bins}{How many bins?}
+
 \item{accuracy}{Rounding digits in percentages}
 
 \item{digits}{Round digits in exposure values in x - axis}
-
-\item{binsHow}{How many bins?}
 }
 \description{
 Histogram for the exposure statistics

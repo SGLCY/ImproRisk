@@ -4,6 +4,12 @@
 \alias{pdf_exposureDemo}
 \title{PDF exposure by Group
  Compare distribtuion across groups
+ @param data The data
+ @param var_exp  String. The exposure variable.Differes depending the scenario
+ @param var_group String. The grouping variable
+ @param bandwidth Numeric.The bandwidth for the density plots
+ @param scale Numeric
+ @param ref_value Numeric. The reference value
  @noRd}
 \usage{
 pdf_exposureDemo(data, var_exp, var_group, bandwith, scale = 1.1, ref_value)
@@ -11,5 +17,11 @@ pdf_exposureDemo(data, var_exp, var_group, bandwith, scale = 1.1, ref_value)
 \description{
 PDF exposure by Group
  Compare distribtuion across groups
+ @param data The data
+ @param var_exp  String. The exposure variable.Differes depending the scenario
+ @param var_group String. The grouping variable
+ @param bandwidth Numeric.The bandwidth for the density plots
+ @param scale Numeric
+ @param ref_value Numeric. The reference value
  @noRd
 }
