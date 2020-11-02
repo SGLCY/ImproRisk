@@ -63,7 +63,7 @@ intro_exposureDemo <-
       
     ),
     intro = c( 
-      htmltools::HTML("<h3>Explore the exposure by demographic information!</h3><p>Hit 'Next' to get a tour</p>"),
+      htmltools::HTML("<h4>Explore the exposure by demographic information!</h4><p>Hit 'Next' to get a tour</p>"),
       
       "First, select the demographic",
       
@@ -82,6 +82,93 @@ intro_exposureDemo <-
       update accordingly",
       
       "Underneath each plot and table, there is a download button"
+      
+    ), stringsAsFactors = FALSE
+  )
+
+# Contribution ####
+
+intro_contribution <- 
+  data.frame(
+    
+    element = c(
+      
+      #NA
+      "#tbl_aggr_contribution"
+      ,"#contribution_panel"
+      #, NA
+      
+      
+    ),
+    intro = c( 
+      #HTML("<h4>Explore the contribution of each food item to the total exposure</h4><p>Hit 'Next'</p>"),
+      
+      HTML("<p>This table aggregates the contribution of each food item to the <code>Total Exposure</code>, 
+      as well as the Contribution within the parent foodex level</p>
+           <p>The contribution is weighted by the population weights</p>"),
+      
+      "You can also view the contribution as a graph"
+      
+      # HTML("<p>The <code>N_day exposure</code> refers to the Total exposure for the full study period.
+      #                 <br>Now depending on the exposure frequency of the substance (see tab 'Exposure'), we also have
+      #                 the MEAN <code>WEEKLY</code> or MEAN <code>DAILY</code> exposure</p>")
+      
+    ), stringsAsFactors = FALSE
+  )
+
+
+# Contribution ####
+
+intro_consumption <- 
+  data.frame(
+    
+    element = c(
+      
+      #NA
+      "#tbl_aggr_consumption"
+      ,"#slct_food_levelConsumption"
+      #, NA
+      
+      
+    ),
+    intro = c( 
+      #HTML("<h4>Explore the contribution of each food item to the total exposure</h4><p>Hit 'Next'</p>"),
+      
+      HTML("<p>This table shows the mean daily consumption in grams for:</p>
+      <ul>
+<li>Consumer based, by averaging the consumption of those who consumed the food</li>
+<li>Population based, by averaging the consumption over the total number of individuals in the survey, irrespective of their zero consumption for that item</li>
+</ul>
+<p> The calculations are always adjusted by the population weigths<p/>"),
+      
+      "Select the food level here"
+      
+    ), stringsAsFactors = FALSE
+  )
+
+
+
+# Individual Exposure ###
+
+intro_individual <- 
+  data.frame(
+    
+    element = c(
+      
+      NA
+      ,"#tbl_exposure"
+      , NA
+      
+      
+    ),
+    intro = c( 
+      htmltools::HTML("<h4>Explore the exposure estimate for each subject</h4><p>Hit 'Next'</p>"),
+      
+      "This table lists the participants in the food survey, along with the demographic characteristics",
+      
+      HTML("<p>The <code>N_day exposure</code> refers to the Total exposure for the full study period.
+                      <br>Now depending on the exposure frequency of the substance (see tab 'Exposure'), we also have
+                      the MEAN <code>WEEKLY</code> or MEAN <code>DAILY</code> exposure</p>")
       
     ), stringsAsFactors = FALSE
   )

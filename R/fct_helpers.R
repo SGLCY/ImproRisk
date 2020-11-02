@@ -229,7 +229,7 @@ pdf_exposureDemo <- function(data,
     )+
     scale_x_continuous(expand = c(0,0))+
     geom_vline(aes(xintercept = ref_value), linetype="dotted")+
-    annotate("text", x = ref_value+0.05*ref_value, y = n_group+0.5,
+    annotate("text", x = ref_value+0.05*ref_value, y = n_group-0.5,
              hjust = 0, 
              label= label_ref_value(ref_value,width = 16)
     )
@@ -293,7 +293,8 @@ aggr_consumption_by_group <- function(merged, subjects, var){
   
   
   sample_size = nrow(subjects)
-  
+  pop_size = sum(subjects$wcoeff)
+
   out <- 
     merged %>% 
     group_by(
@@ -312,28 +313,26 @@ aggr_consumption_by_group <- function(merged, subjects, var){
     ) %>% 
     group_by(.data[[var]]) %>% 
     summarise(
-      N  = sum(consumed), # number of consumers
+      N_sample  = sum(consumed), # number of consumers
+      N_pop = sum(consumed * wcoeff),
       #consumers = n_distinct(subjectid[ttl_cons!=0]),
-      consumer     = sum(daily_cons *  wcoeff)/sum(wcoeff[ttl_cons !=0]),
-      population   = sum(daily_cons *  wcoeff)/sum(wcoeff, na.rm = TRUE)
+      consumer_based     = sum(daily_cons *  wcoeff)/sum(wcoeff[ttl_cons !=0]),
+      population_based   = sum(daily_cons *  wcoeff)/sum(wcoeff, na.rm = TRUE)
     ) %>% 
     mutate_at(
-      vars(population, consumer), ~  round(.,1)
+      vars(population_based, consumer_based), ~  round(.,1)
     ) %>% 
     mutate(
-      pct = percent(N/sample_size,accuracy = 0.1),
-      "Consumers [N(%)]" = glue::glue("{N} ({pct}}")
-    ) %>% 
-    select(-pct, -N) %>% 
-    # rename(
-    #   "Population based (gr)" = population,
-    #   "Consumer based (gr)"   = consumer
-    # ) %>% 
-    {.}
+      pct_sample = percent(N_sample/sample_size,accuracy = 0.1),
+      "Sample" = glue::glue("{N_sample} ({pct_sample}}"),
+      
+      pct_pop = percent(N_pop/pop_size,accuracy = 0.1),
+      "Population" = glue::glue("{N_pop} ({pct_pop}}")
+    ) 
 
     # in case NaNs appear where no consumption is made
   out %>% 
-    tidyr::replace_na(list(consumer = 0))
+    tidyr::replace_na(list(consumer_based = 0)) 
 }
 
 

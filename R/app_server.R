@@ -11,16 +11,6 @@
 #' @noRd
 app_server <- function( input, output, session ) {
   
-  fdx1_l1_desc <- unique(foodex.1$foodex_l1_desc)
-  fdx1_l2_desc <- unique(foodex.1$foodex_l2_desc)
-  fdx1_l3_desc <- unique(foodex.1$foodex_l3_desc)
-  fdx1_l4_desc <- unique(foodex.1$foodex_l4_desc)
-  
-  fdx1_l1_code <- unique(foodex.1$foodex_l1_code)
-  fdx1_l2_code <- unique(foodex.1$foodex_l2_code)
-  fdx1_l3_code <- unique(foodex.1$foodex_l3_code)
-  fdx1_l4_code <- unique(foodex.1$foodex_l4_code)
-  
   # List the first level callModules here
   #callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_1")
   #callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_2")
@@ -141,6 +131,7 @@ app_server <- function( input, output, session ) {
     x_label = "μg/Kg body weight", # somtime I will give the option to the user to change it
     y_label = "Population", # this might be `sample`? in case of non weighted
     
+    exp_label = "μg/Kg body weight",
     substance_info = sample_substance_info
   )
   
@@ -385,8 +376,8 @@ app_server <- function( input, output, session ) {
     }
     
     # Add the labs
-    
-    exp_plot +
+    exp_plot <- 
+      exp_plot +
       labs(
         title = title,
         x     = x_label,
@@ -396,6 +387,8 @@ app_server <- function( input, output, session ) {
     
     
     catch_plotError(exp_plot)
+    
+    exp_plot
     
   })
   
@@ -553,20 +546,52 @@ app_server <- function( input, output, session ) {
     
   })
   
-  output$tbl_aggr_consumption <- DT::renderDT({
+  output$tbl_aggr_consumption <- reactable::renderReactable({
+    
+    var <- input$slct_food_levelConsumption
+    
+    var_name <- fdx_names[[var]]
     
     tbl_aggr_consumption() %>% 
-      arrange(desc(consumer)) %>% 
-      DT::datatable(
+      rename({{var_name}} := {{var}}) %>% 
+      reactable::reactable(
+        filterable = TRUE,
+        bordered = TRUE,
+        resizable = TRUE,
+        defaultPageSize = 20,
         
-        style = "bootstrap"
-        , rownames = FALSE
-        , options = list(
+        columns = list(
           
-          paging = TRUE,
-          scrollX = TRUE, scrollY = "500px"
+          N_sample = colDef(show = FALSE),
+          pct_sample = colDef(show = FALSE),
+          N_pop = colDef(show =FALSE),
+          pct_pop = colDef(show  = FALSE),
+          consumer_based = colDef("Consumer based",align = "center", format = colFormat(digits = 1)),
+          population_based = colDef("Population based",align = "center", format = colFormat(digits = 1)),
+          
+          Sample = colDef("Sample",align = "center"),
+          Population = colDef("Population", align = "center")
+          
+        ),
+        columnGroups = list(
+          
+          colGroup(name = "Consumers [N(%)]", align = "center", html = FALSE, columns = c("Sample", "Population")),
+          colGroup(name = "Consumption (grams)", align = "center", html = FALSE, columns = c("consumer_based", "population_based"))
+          
         )
+        
       )
+    
+  })
+  
+  
+  observe({
+    if(input$consumptionTabBox == "Table"){
+      shinyjs::hide("slct_consumptionType")
+    } else {
+      shinyjs::show("slct_consumptionType")
+    }
+    
   })
   
   
@@ -587,15 +612,15 @@ app_server <- function( input, output, session ) {
     }
     
     # leave as is for consumers. to set the max y limit in plot.
-    max_consumption <- max(tbl_aggr_consumption()$consumer)
+    max_consumption <- max(tbl_aggr_consumption()$consumer_based)
     
     
     if(consumptionType  == "Both"){
       
       p <- 
         tbl_aggr_consumption() %>% 
-        slice_max(n= 20, order_by = .data[["consumer"]]) %>% 
-        tidyr::gather(key, value, consumer, population) %>% 
+        slice_max(n= 20, order_by = .data[["consumer_based"]]) %>% 
+        tidyr::gather(key, value, consumer_based, population_based) %>% 
         ggplot(
           aes(
             x = forcats::fct_rev(forcats::fct_inorder(.data[[level_var]])), #, consumer), 
@@ -620,8 +645,8 @@ app_server <- function( input, output, session ) {
         scale_x_discrete(labels = function(x) stringr::str_wrap(x, 50))+
         scale_fill_brewer(type = "qual", palette = 2, 
                           guide =  guide_legend(reverse = TRUE),
-                          labels = c(consumer = "Consumer based", 
-                                     population = "Population based"
+                          labels = c(consumer_based = "Consumer based", 
+                                     population_based = "Population based"
                           )
         )+
         NULL
@@ -692,7 +717,6 @@ app_server <- function( input, output, session ) {
       purrr::set_names(scenarios)
     
     temp <- 
-      #sample_consumption %>% 
       tbl_merged() %>% 
       #rename_with(~scenarios, .cols = contains("refined_exposure")) %>%
       rename(vars_rename) %>% 
@@ -743,7 +767,8 @@ app_server <- function( input, output, session ) {
     tbl_contribution() %>% 
       filter(
         scenario == input$slct_scenario_contribution,
-        contribution >= as.numeric(input$contr_filter)/100
+        #contribution >= as.numeric(input$contr_filter)/100
+        contribution > input$contr_filter/100
       ) 
     
   })
@@ -769,7 +794,18 @@ app_server <- function( input, output, session ) {
       rv$show_contr <- TRUE
     }
     
-    contribution_filtered() %>% 
+    
+    within_title <- switch (input$slct_level,
+                            "Level 2" = "Contribution within Level 1",
+                            "Level 3" = "Contribution within Level 2",
+                            NULL
+    )
+    
+    table_title <- glue::glue("Food items with greater than {isolate(input$contr_filter)}% contribution\n")
+    
+    
+    tbl <- 
+      contribution_filtered() %>% 
       reactable::reactable(
         # in the Level 1 case
         groupBy = nth(food_level, -2, default = food_level),
@@ -778,7 +814,8 @@ app_server <- function( input, output, session ) {
           exposure = colDef(name = "Total exposure", 
                             aggregate = "sum",
                             format = colFormat(digits = input$contr_digitsExp),
-                            filterable = FALSE
+                            filterable = FALSE,
+                            show = FALSE
           ),
           contribution = colDef(name = "Contribution to Total exposure",aggregate = "sum",
                                 format = colFormat(percent = TRUE, digits = input$contr_digitsPct),
@@ -786,7 +823,7 @@ app_server <- function( input, output, session ) {
                                 defaultSortOrder = "desc"
                                 
           ),
-          contr_within = colDef(name = "Contribution within"
+          contr_within = colDef(name = within_title
                                 ,show = rv$show_contr
                                 ,aggregate = "sum",
                                 filterable = FALSE,
@@ -815,7 +852,13 @@ app_server <- function( input, output, session ) {
         #   rowStyle = list(colour = "#008000")
       )
     
-    
+    # # add tittle
+    # not yet possible in shiny 02/11/2020
+    # htmlwidgets::prependContent(tbl,
+    #                             h2(class = "title", 
+    #                                table_title
+    #                                )
+    #                             )
     
   })
   
@@ -825,14 +868,20 @@ app_server <- function( input, output, session ) {
     tbl_aggr_contribution()
     
   })
-  output$contr_tbl_title <- renderText({
+  
+  output$contr_tbl_title <- renderUI({
     
-    if(as.numeric(input$contr_filter)== 0) {
-      title <- ""
-    }else {
-      title <- glue::glue("<h2>Food items with greater than {isolate(input$contr_filter)}% contribution\n</h2>")
-    }
-    title
+    pct <- input$contr_filter
+    
+    tagList(
+      
+      HTML("<h3>Contribution to the total exposure</h3>"),
+      
+      HTML(as.character(glue("<h4>Food items with greater than {pct}% contribution</h4>")))
+      
+    )
+    # title <-
+    # HTML(as.character(title))
   })
   
   
@@ -843,7 +892,7 @@ app_server <- function( input, output, session ) {
     
     
     # Graph peripherals
-    title <- glue::glue("Contribution Total Exposure ({isolate(input$slct_scenario_contribution)})")
+    title <- glue::glue("Contribution to the Total Exposure ({isolate(input$slct_scenario_contribution)})")
     
     if(isolate(as.numeric(input$contr_filter))== 0) {
       subtitle = ""
@@ -853,22 +902,23 @@ app_server <- function( input, output, session ) {
     
     max_contr <- max(contribution_filtered()$contribution)
     
+    values_order <- input$values_order
     
     # The plot
     
     contribution_filtered() %>%
       ggplot(
         aes(
-          x = forcats::fct_reorder(.data[[top_level]], contribution), 
+          x = fct_reorder(.data[[top_level]], contribution, .desc=values_order), 
           y = contribution,
-          tooltip = scales::percent(contribution,  accuracy = 0.1),
+          tooltip = percent(contribution,  accuracy = 0.1),
           data_id = .data[[second_top_level]] 
         )
       )+
       ggiraph::geom_col_interactive(width = 0.5, fill = impro_colours[2])+
       coord_flip(ylim = c(0, max_contr*1.15))+
       labs(
-        x = top_level,
+        x = "Food Group", # top_level,
         y  = "Contribution",
         title = title,
         subtitle = subtitle
@@ -892,15 +942,17 @@ app_server <- function( input, output, session ) {
   
   output$contr_graph <- ggiraph::renderGirafe({
     
-    ggiraph::girafe(ggobj =contr_graph(),width_svg = 6 )
+    ggiraph::girafe(ggobj =contr_graph()#,width_svg = 6
+                    )
     
   })
   
   output$contr_UI <- renderUI({
     
+    ht <- paste0(input$contr_height, "px")
     ggiraph::girafeOutput({
       "contr_graph"
-    },height = paste0(input$contr_height, "px")
+    },height = ht
     )
     
   })
@@ -1023,7 +1075,7 @@ app_server <- function( input, output, session ) {
       # Change title
       
       rv$title_statsDemo <- 
-        paste0("Exposure estimates by ", 
+        paste0("Exposure statistics by ", 
                rv$demo[input$slct_demo],
                " at the ",
                input$slct_scenario_exposureDemo,
@@ -1180,6 +1232,9 @@ app_server <- function( input, output, session ) {
     
     digits <- 3 #input$contr_digitsExp
     
+    nlab <- glue("<p>N_day total exposure<br>({rv$exp_label})</br></p>")
+    dlab <- glue("<p>{rv$exposure_frequency} mean exposure<br>({rv$exp_label})</br></p>")
+    
     tbl_exposure() %>% 
       #temp_tbl_exposure() %>% 
       rename(!!!var_names) %>% 
@@ -1201,8 +1256,8 @@ app_server <- function( input, output, session ) {
           
         ),
         columnGroups = list(
-          colGroup(name = "N_day", columns = c("nday_lb", "nday_mb", "nday_ub")),
-          colGroup(name = rv$exposure_frequency, columns = c("subExp_LB", "subExp_MB", "subExp_UB"))
+          colGroup(name = nlab, html = TRUE, columns = c("nday_lb", "nday_mb", "nday_ub")),
+          colGroup(name = dlab, html = TRUE, columns = c("subExp_LB", "subExp_MB", "subExp_UB"))
           
         )
         
@@ -1219,7 +1274,7 @@ app_server <- function( input, output, session ) {
   # Update DATA -------------------------------------------------------------
   
   
-  #> Consunption ####
+  #> Consumption ####
   # Capture the details of the consumption file
   observeEvent(input$consumption_file,{
     
@@ -1303,9 +1358,9 @@ app_server <- function( input, output, session ) {
   
   
   output$cons_progress_UI <- renderUI({
-
+    
     cons_progress_UI()
-
+    
   })
   
   
@@ -1342,9 +1397,9 @@ app_server <- function( input, output, session ) {
   })
   
   
-
-# #> Occurrence -----------------------------------------------------------
-
+  
+  # #> Occurrence -----------------------------------------------------------
+  
   
   observeEvent(input$occurrence_file,{
     
@@ -1359,7 +1414,7 @@ app_server <- function( input, output, session ) {
     
   })
   
-
+  
   occur_progress_UI <- reactive({
     
     validate(
@@ -1375,7 +1430,7 @@ app_server <- function( input, output, session ) {
       validate("Please import an .xlsx file")
     }
     
-   
+    
     # Correct sheets?
     check_sheets_occur(input$occurrence_file$datapath)
     
@@ -1418,7 +1473,7 @@ app_server <- function( input, output, session ) {
     valid_occurrence_file(TRUE)
     
     tagList(
-
+      
       tags$h3("Your Occurrence data have been checked and succesfully uploaded",style= "colour: '#3CB371'")
     )
     
@@ -1576,7 +1631,12 @@ app_server <- function( input, output, session ) {
     switch(input$tabs,
            
            "exposure" = intro_exposure,
-           "exposureDemo" = intro_exposureDemo
+           "exposureDemo" = intro_exposureDemo,
+           
+           "contribution" = intro_contribution,
+           "individual" = intro_individual,
+           
+           "consumption" = intro_consumption
     )
     
   )
@@ -1739,5 +1799,4 @@ app_server <- function( input, output, session ) {
   # }, ignoreInit = TRUE)
   
   
-  }
-  
+}

@@ -182,13 +182,13 @@ app_ui <- function(request) {
                                collapsed = TRUE, collapsible = TRUE,
                                width = NULL, 
                                numericInput("digits_exposureDemo", 
-                                            "Digits",
+                                            "Exposure digits",
                                             value = 2, 
                                             min = 1, max = 10, 
                                             step = 1
                                ),
                                numericInput("pct.digits_exposureDemo", 
-                                            "% Digits",
+                                            "pctOver Digits",
                                             value = 2, 
                                             min = 0, max = 5, 
                                             step = 1
@@ -260,7 +260,7 @@ app_ui <- function(request) {
                                            mod_downloadTable_ui("tbl_contribution")
                                   ),
                                   tabPanel(title = "Graphs",
-                                           uiOutput("contr_UI",inline = TRUE)
+                                           uiOutput("contr_UI")
                                            #ggiraph::girafeOutput("contr_graph", height = NULL)
                                   )
                            ) 
@@ -277,26 +277,27 @@ app_ui <- function(request) {
                                                      value = 1, min = 0, max = 10, step = 1)
                                         
                                  ),
-                                 column(width = 3,
+                                 col_3(
                                         numericInput("contr_digitsPct", "Digits percent",
                                                      value = 2, min = 0, max = 10, step = 1)
                                  ),
-                                 column(width =  6,
-                                        # sliderInput(
-                                        #   inputId = "contr_filter",
-                                        #   value = 1,
-                                        #   label ="Show contribution greater than..",
-                                        #   min  = 0, max = 50,
-                                        #   post = "%"
-                                        # )
-                                        shinyWidgets::radioGroupButtons(
+                                 col_6(
+                                        sliderInput(
                                           inputId = "contr_filter",
-                                          choices = c("1%" =1, "5%"  =  5, "10%" =  10),
+                                          value = 1,
+                                          step = 1,
                                           label ="Show contribution greater than..",
-                                          selected = 1
+                                          min  = 0, max = 99,
+                                          post = "%"
                                         )
+                                        # shinyWidgets::radioGroupButtons(
+                                        #   inputId = "contr_filter",
+                                        #   choices = c("1%" =1, "5%"  =  5, "10%" =  10),
+                                        #   label ="Show contribution greater than..",
+                                        #   selected = 1
+                                        # )
                                  ),
-                                 column(width =  6,
+                                 col_6(
                                         sliderInput(
                                           inputId = "contr_height",
                                           value = 700,
@@ -305,7 +306,19 @@ app_ui <- function(request) {
                                           step = 50,
                                           post = "px"
                                         )
+                                 ),
+                                 col_3(
+                                       shinyWidgets::prettyCheckbox(
+                                         inputId = "values_order",
+                                         value = FALSE,
+                                         label ="Ascending order?",
+                                         icon = icon("check"),
+                                         status = "success"
+                                       )
                                  )
+                                 
+                                 
+                                 
                                ) #fluidRow
                            )
                     )#column 3
@@ -370,8 +383,10 @@ app_ui <- function(request) {
                            tabBox(id = "consumptionTabBox",width = NULL,
                                   title= "",
                                   tabPanel(title = "Table",
-                                           h2("Mean Consumption (grams)"),
-                                           DT::DTOutput("tbl_aggr_consumption"),
+                                           #h2("Mean Consumption (grams)"),
+                                           h3("Mean daily consumption over the food survey period"),
+                                           br(),
+                                           reactable::reactableOutput("tbl_aggr_consumption"),
                                            mod_downloadTable_ui("tbl_aggr_consumption")
                                   ),
                                   tabPanel(title = "Graph",
@@ -384,6 +399,19 @@ app_ui <- function(request) {
                     column(width = 4,
                            
                            box(title = "Options ",
+                               
+                               # Too BIG!! whenI open.Exceeds page...
+                               # shinyWidgets::pickerInput(
+                               #   "slct_fdx_level1", 
+                               #   "Choose FoodEx Level 1 items", 
+                               #   choices = stringr::str_wrap(as.character(fdx1_l1_desc), 15),
+                               #   multiple = TRUE,
+                               #   selected = ""
+                               #   options = list(`actions-box` = TRUE,
+                               #                  `live-Search`  = TRUE,
+                               #                  liveSearchStyle = "contains"
+                               #   )
+                               # ),
                                shinyWidgets::prettyCheckbox(
                                  inputId = "hide_water",
                                  value = TRUE,
@@ -392,9 +420,9 @@ app_ui <- function(request) {
                                  status = "success"
                                ),
                                selectInput("slct_consumptionType",
-                                           "Select consumption type  (for Graph",
-                                           choices = c("Consumer based" = "consumer", 
-                                                       "Population based" =  "population",
+                                           "Select consumption type",
+                                           choices = c("Consumer based" = "consumer_based",
+                                                       "Population based" = "population_based",
                                                        "Both"  = "Both"),
                                            selected = "Consumer based"
                                ),
