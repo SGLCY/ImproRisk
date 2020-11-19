@@ -184,7 +184,7 @@ app_ui <- function(request) {
                                width = NULL
                            ),
                            box(title = "Customise tables & graphs",
-                               collapsed = TRUE, collapsible = TRUE,
+                               collapsed = FALSE, collapsible = TRUE,
                                width = NULL, 
                                numericInput("digits_exposureDemo", 
                                             "Exposure digits",
@@ -197,15 +197,15 @@ app_ui <- function(request) {
                                             value = 2, 
                                             min = 0, max = 5, 
                                             step = 1
-                               ),
-                               sliderInput("bandwidthDemo",
-                                           "Bandwidth (PDF)",
-                                           value = NULL,
-                                           min = 0, max = 0.5,
-                                           step = 0.01,
-                                           round = -3 #3 decimals
-                                           
                                )
+                               # sliderInput("bandwidthDemo",
+                               #             "Bandwidth (PDF)",
+                               #             value = NULL,
+                               #             min = NULL, max = NULL,
+                               #             step = 0.001
+                               #             #round = -3 #3 decimals
+                               #             
+                               # )
                            )
                     ),
                     column(7, offset = 1,
@@ -357,10 +357,22 @@ app_ui <- function(request) {
                   h3("Participants and individual exposure"),
                   tags$hr(style="border-color: black;"),
                   fluidRow(
-                    box(title = "", 
-                        reactable::reactableOutput("tbl_exposure"),
-                        mod_downloadTable_ui("tbl_exposure"),
-                        width = 12
+                    column(11,
+                           box(title = "", 
+                               reactable::reactableOutput("tbl_exposure"),
+                               mod_downloadTable_ui("tbl_exposure"),
+                               width = NULL
+                           )
+                    ),
+                    col_1(
+                      shinyWidgets::dropdownButton(
+                        #tags$h3("List of Input"),
+                        numericInput("individual_digitsExp","Exposure digits",
+                                     value = 3, min = 1, max = 10, step = 1),
+                        circle = TRUE, status = "default", size = 'sm', icon = icon("gear"), 
+                        width = "50px", right = TRUE,
+                        tooltip = shinyWidgets::tooltipOptions(title = "Click to customise  table")
+                      )
                     )
                   )
                   
@@ -390,21 +402,21 @@ app_ui <- function(request) {
                                           choices = fdx1_levels_cons,
                                           selected = "Level 1"
                               )
-                              ),
-                              col_6(
-                                shinyWidgets::pickerInput(
-                                  "slct_fdx_level1",
-                                  "FIlter by FoodEx Level 1 items",
-                                  choices = as.character(fdx1_l1_desc),
-                                  multiple = TRUE,
-                                  selected = as.character(fdx1_l1_desc),
-                                  options = list(`actions-box` = TRUE,
-                                                 `live-Search`  = TRUE,
-                                                 `selected-text-format` = "count",
-                                                 liveSearchStyle = "contains"
-                                                 )
+                            ),
+                            col_6(
+                              shinyWidgets::pickerInput(
+                                "slct_fdx_level1",
+                                "FIlter by FoodEx Level 1 items",
+                                choices = as.character(fdx1_l1_desc),
+                                multiple = TRUE,
+                                selected = as.character(fdx1_l1_desc),
+                                options = list(`actions-box` = TRUE,
+                                               `live-Search`  = TRUE,
+                                               `selected-text-format` = "count",
+                                               liveSearchStyle = "contains"
                                 )
                               )
+                            )
                           )
                           
                       )
@@ -465,7 +477,7 @@ app_ui <- function(request) {
                   fluidRow(
                     col_2(
                       box(width = NULL,
-                        uiOutput("scenario_UI_drillDown")
+                          uiOutput("scenario_UI_drillDown")
                       )
                       
                     )

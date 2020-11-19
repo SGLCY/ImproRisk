@@ -210,7 +210,7 @@ cdf_exposure <- function(data,
 pdf_exposureDemo <- function(data,
                              var_exp,
                              var_group,
-                             bandwith,
+                             #bandwith,
                              scale = 1.1,
                              ref_value
                              
@@ -223,7 +223,7 @@ pdf_exposureDemo <- function(data,
       aes(y = .data[[var_group]], x = .data[[var_exp]])
     )+
     ggridges::geom_density_ridges(fill = impro_colours[2],
-                                  bandwidth =  bandwith, 
+                                  #bandwidth =  bandwith, 
                                   stat="density_ridges", 
                                   scale =  scale,
     )+

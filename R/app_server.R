@@ -436,10 +436,9 @@ app_server <- function( input, output, session ) {
   exposure_pdfDemo <-reactive({
     
     # A Ridgline plot
-    
     req(input$slct_scenario_exposureDemo,
         input$slct_demo,
-        input$bandwidthDemo>0
+       # input$bandwidthDemo>0
     )
     
     #NULL ref_value brakes down the plot in aes(xintercept= NULL). 
@@ -454,19 +453,25 @@ app_server <- function( input, output, session ) {
     x_label    <- rv$x_label
     y_label    <- rv$y_label
     
-    digits     <- input$digits_exposureDemo
-    pct.digits <- input$pct.digits_exposureDemo
-    bandwidth  <- input$bandwidthDemo
+    #digits     <- input$digits_exposureDemo
+    #pct.digits <- input$pct.digits_exposureDemo
     
+    #bandwidth  <- input$bandwidthDemo
+    
+    if(sum(tbl_exposure()[[var_to_use]])==0 ){
+      
+      validate(glue("No exposure at the {scenario} scenario. Unable to create the plot"))
+      
+    }
     exp_plot <- pdf_exposureDemo(tbl_exposure(),
                                  var_exp = var_to_use,
                                  var_group =  var_group,
-                                 bandwith  = bandwidth,
+                                 #bandwith  = bandwidth,
                                  scale = 1.1,
                                  ref_value= ref_value
     )
-    
-    
+
+        
     # Add the labs
     exp_plot <- 
       exp_plot +
@@ -500,6 +505,12 @@ app_server <- function( input, output, session ) {
     title <- glue::glue("Cummulative distribution of exposure at the {scenario} scenario")
     x_label <- rv$x_label
     y_label <- rv$y_label
+    
+    if(sum(tbl_exposure()[[var_to_use]])==0 ){
+      
+      validate(glue("No exposure at the {scenario} scenario. Unable to create the plot"))
+      
+    }
     
     cdf_exposure(tbl_exposure(),
                  var_exp = var_to_use,
@@ -1097,18 +1108,18 @@ app_server <- function( input, output, session ) {
       
       # Estimate bandwidth and range
       
-      bw <- calc_bandwidth(tbl_exposure(),
-                           target  = paste0("subExp_", input$slct_scenario_exposureDemo),
-                           group   = input$slct_demo
-      )
+      # bw <- calc_bandwidth(tbl_exposure(),
+      #                      target  = paste0("subExp_", input$slct_scenario_exposureDemo),
+      #                      group   = input$slct_demo
+      # )
       
-      updateSliderInput(session,"bandwidthDemo", 
-                        value  = bw[["mean"]],
-                        min = round(bw[["low"]], 3),
-                        max = round(bw[["high"]], 3)
-      )
+      # updateSliderInput(session,"bandwidthDemo", 
+      #                   value  = bw[["mean"]],
+      #                   min = round(bw[["low"]], 3),
+      #                   max = round(bw[["high"]], 3)
+      # )
       
-    }
+    }, ignoreInit = FALSE
   )
   
   
@@ -1243,7 +1254,7 @@ app_server <- function( input, output, session ) {
   
   output$tbl_exposure <- reactable::renderReactable({
     
-    digits <- 3 #input$contr_digitsExp
+    digits <- input$individual_digitsExp
     
     nlab <- glue("<p>N_day total exposure<br>({rv$exp_label})</br></p>")
     dlab <- glue("<p>{rv$exposure_frequency} mean exposure<br>({rv$exp_label})</br></p>")

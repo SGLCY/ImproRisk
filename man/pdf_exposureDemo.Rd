@@ -12,7 +12,7 @@
  @param ref_value Numeric. The reference value
  @noRd}
 \usage{
-pdf_exposureDemo(data, var_exp, var_group, bandwith, scale = 1.1, ref_value)
+pdf_exposureDemo(data, var_exp, var_group, scale = 1.1, ref_value)
 }
 \description{
 PDF exposure by Group
