@@ -32,4 +32,3 @@ mod_slct_scenario_server <- function(input, output, session){
     
 ## To be copied in the server
 # callModule(mod_slct_scenario_server, "slct_scenario_ui_1")
- 

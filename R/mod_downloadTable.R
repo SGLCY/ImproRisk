@@ -42,10 +42,3 @@ mod_downloadTable_server <- function(input, output, session, table_name, the_tab
   )
   
 }
-    
-## To be copied in the UI
-# mod_downloadTable_ui("downloadTable_ui_1")
-    
-## To be copied in the server
-# callModule(mod_downloadTable_server, "downloadTable_ui_1")
- 

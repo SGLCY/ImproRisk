@@ -48,10 +48,3 @@ mod_downloadPlot_server <- function(input, output, session, plot_name, the_plot,
     }
   )
 }
-    
-## To be copied in the UI
-# mod_downloadPlot_ui("downloadPlot_ui_1")
-    
-## To be copied in the server
-# callModule(mod_downloadPlot_server, "downloadPlot_ui_1")
- 

@@ -4,6 +4,8 @@
 fdx1_group_level1 <- c("foodex_l1_desc")
 fdx1_group_level2 <- c("foodex_l1_desc", "foodex_l2_desc")
 fdx1_group_level3 <- c("foodex_l1_desc" ,"foodex_l2_desc", "foodex_l3_desc")
+#fdx1_group_level3_aggr <- c("foodex_l1_desc" ,"foodex_l2_desc", "foodex_l3_desc", "foodex_l3_desc_aggr")
+fdx1_group_level3_aggr <- c("foodex_l1_desc" ,"foodex_l2_desc", "foodex_l3_desc_aggr")
 
 
 
@@ -16,6 +18,12 @@ fdx1_levels <- list(
   "Level 3" = fdx1_group_level3
 )
 
+# for the tbl_contribution
+fdx1_levels_contribution <- list(
+  "Level 1" = fdx1_group_level1,
+  "Level 2" = fdx1_group_level2,
+  "Level 3" = fdx1_group_level3_aggr
+)
 
 fdx1_levels_cons <- c(
   
@@ -25,6 +33,7 @@ fdx1_levels_cons <- c(
   "Level 4" = "foodex_l4_desc"
   
 )
+
 
 
 # I may use it in the server to rename the column names in the datasets
@@ -124,23 +133,22 @@ occur_l3_names <- c(
 
 tab_items <- tibble::tribble(
   ~tabTitle,            ~tabName,         ~icon,
-  "Exposure",           "exposure",       "th",
-  "Exposure by Demo",   "exposureDemo",   "th",
-  "Contribution",       "contribution",   "th",
-  "Explore Consumption","consumption",    "th",
+  "Exposure",              "exposure",       "atom",
+  "Exposure by Demographic",   "exposureDemo",   "user-friends",
+  "Exposure by Subject" , "individual", "user",
+  "Contribution",       "contribution",   "percent",
+  "Explore Consumption","consumption",    "utensils",
   "Drill down",         "drillDown",      "chart-bar",
-  "Occurrence",         "occurrence",     "th",
-  "Level 2",            "occurrenceL2",   "th",
-  "Level 3",            "occurrenceL3",   "th",
-  "Foodex1",            "foodex1",        "th",
-  "Tables",             "tables",         "th",
-  "Merged data",        "merged",         "",
-  "Individual exposure","individual",     "",
-  "Update data",        "updateData",     "th",
+  "Occurrence",         "occurrence",     "flask",
+  "Level 2",            "occurrenceL2",   "",
+  "Level 3",            "occurrenceL3",   "",
+  "Foodex1",            "foodex1",        "bread-slice",
+  "Merged data",        "merged",         "object-group",  
+  "Update data",        "updateData",     "file-import",
   "Consumption",        "consumptionUpdate",    "",
   "Occurrence",         "occurrenceUpdate",     "",
   "Log",                "log",            "columns",
-  "ABOUT",               "info",           "th"
+  "ABOUT",               "info",           "info"
 )
 
 

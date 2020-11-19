@@ -31,9 +31,3 @@ mod_showSubstanceInfo_server <- function(input, output, session){
   })
   
 }
-    
-## To be copied in the UI
-# mod_showSubstanceInfo_ui("showSubstanceInfo_ui_1")
-    
-## To be copied in the server
-# callModule(mod_showSubstanceInfo_server, "showSubstanceInfo_ui_1")

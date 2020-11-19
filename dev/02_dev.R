@@ -44,6 +44,7 @@ usethis::use_package("DT")
 usethis::use_package("htmltools")
 usethis::use_package("htmlwidgets")
 usethis::use_package("shinyFeedback")
+usethis::use_package("shinycssloaders")
 
 # usethis::use_package("ggthemes")
 usethis::use_pipe()
@@ -52,11 +53,11 @@ usethis::use_pipe()
 
 ## Add modules ----
 ## Create a module infrastructure in R/
-golem::add_module( name = "showSubstanceInfo" ) # Name of the module
-golem::add_module( name = "slct_scenario" ) # Name of the module
-
-golem::add_module(name = "downloadPlot")
-golem::add_module(name = "downloadTable")
+# golem::add_module( name = "showSubstanceInfo" ) # Name of the module
+# golem::add_module( name = "slct_scenario" ) # Name of the module
+# 
+# golem::add_module(name = "downloadPlot")
+# golem::add_module(name = "downloadTable")
 #golem::add_module( name = "name_of_module2" ) # Name of the module
 
 ## Add helper functions ----
@@ -66,7 +67,7 @@ golem::add_module(name = "downloadTable")
 
 #golem::add_utils( "tbl_helpers" )
 
-golem::add_fct("merge_data")
+#golem::add_fct("merge_data")
 
 
 ## External resources
@@ -84,21 +85,21 @@ golem::add_fct("merge_data")
 
 ## Tests ----
 ## Add one line by test you want to create
-usethis::use_test( "app" )
+#usethis::use_test( "app" )
 
 # Documentation
 
 ## Vignette ----
-usethis::use_vignette("get_started")
-devtools::build_vignettes()
+# usethis::use_vignette("get_started")
+# devtools::build_vignettes()
 
 ## Code coverage ----
 ## (You'll need GitHub there)
-usethis::use_github()
-usethis::use_travis()
-usethis::use_appveyor()
+# usethis::use_github()
+# usethis::use_travis()
+# usethis::use_appveyor()
 
 # You're now set! ----
 # go to dev/03_deploy.R
-rstudioapi::navigateToFile("dev/03_deploy.R")
+#rstudioapi::navigateToFile("dev/03_deploy.R")
 
