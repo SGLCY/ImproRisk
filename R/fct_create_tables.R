@@ -122,9 +122,9 @@ create_tbl_merged <- function(consumption, occurrence_l2, occurrence_l3,...){
     
     #Other Level 3
     mutate(
-      level3_aggr = if_else(is.na(l3_meal_exp_mean_MB), 
-                            paste0("-Other-", foodex_l3_desc), 
-                            foodex_l2_desc)
+      foodex_l3_desc_aggr = if_else(is.na(l3_meal_exp_mean_MB), 
+                            paste0("-Other-", foodex_l2_desc), 
+                            foodex_l3_desc)
     )
   
   #return

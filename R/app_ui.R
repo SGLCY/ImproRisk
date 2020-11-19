@@ -16,7 +16,8 @@ app_ui <- function(request) {
       dashboardSidebar(
         sidebarMenu(id = "tabs",
                     menuItem("Exposure", tabName = "exposure", icon = icon("atom")),
-                    menuItem("Exposure by Demo", tabName = "exposureDemo", icon = icon("user-friends")),
+                    menuItem("Exposure by Demographic", tabName = "exposureDemo", icon = icon("user-friends")),
+                    menuItem("Exposure by Subject", tabName = "individual", icon = icon("user")),
                     menuItem("Contribution", tabName = "contribution", icon = icon("percent")),
                     menuItem("Explore Consumption", tabName = "consumption", icon = icon("utensils")),
                     menuItem("Drill down", tabName = "drillDown", icon = icon("chart-bar")),
@@ -26,12 +27,16 @@ app_ui <- function(request) {
                              menuSubItem("Level 3", tabName = "occurrenceL3")
                     ),
                     menuItem("FoodEx1", tabName = "foodex1", icon = icon("bread-slice")),
-                    menuItem("Tables", tabName = "tables", icon = icon("table"),
-                             startExpanded = FALSE,
-                             #menuSubItem("Subjects", tabName = "subjects"),
-                             menuSubItem("Merged data", tabName = "merged"),
-                             menuSubItem("Individual exposure", tabName = "individual")
-                    ),
+                    
+                    menuItem("Merged data", tabName = "merged",icon = icon("object-group")),
+                    
+                    # menuItem("Tables", tabName = "tables", icon = icon("table"),
+                    #          startExpanded = FALSE,
+                    #          #menuSubItem("Subjects", tabName = "subjects"),
+                    #          menuSubItem("Merged data", tabName = "merged"),
+                    #          menuSubItem("Individual exposure", tabName = "individual")
+                    # ),
+                    
                     menuItem("Update Data", tabName = "updateData", icon = icon("file-import"),
                              startExpanded = FALSE,
                              menuSubItem("Consumption", tabName = "consumptionUpdate"),
@@ -57,7 +62,7 @@ app_ui <- function(request) {
         tabItems(
           # EXPOSURE TAB ####
           tabItem(tabName = "exposure",
-                  h3("Exposure estimates"),
+                  h3("Overall Exposure estimates"),
                   tags$hr(style="border-color: black;"),
                   #h4("Exposure Statistics"),
                   fluidRow(
@@ -228,6 +233,7 @@ app_ui <- function(request) {
           # Contribution TAB ####
           tabItem("contribution",
                   h3("Explore the contribution of food items to the total exposure"),
+                  tags$hr(style="border-color: black;"),
                   fluidRow(
                     column(4,
                            box(width = NULL,
@@ -278,43 +284,43 @@ app_ui <- function(request) {
                                         
                                  ),
                                  col_3(
-                                        numericInput("contr_digitsPct", "Digits percent",
-                                                     value = 2, min = 0, max = 10, step = 1)
+                                   numericInput("contr_digitsPct", "Digits percent",
+                                                value = 2, min = 0, max = 10, step = 1)
                                  ),
                                  col_6(
-                                        sliderInput(
-                                          inputId = "contr_filter",
-                                          value = 1,
-                                          step = 1,
-                                          label ="Show contribution greater than..",
-                                          min  = 0, max = 99,
-                                          post = "%"
-                                        )
-                                        # shinyWidgets::radioGroupButtons(
-                                        #   inputId = "contr_filter",
-                                        #   choices = c("1%" =1, "5%"  =  5, "10%" =  10),
-                                        #   label ="Show contribution greater than..",
-                                        #   selected = 1
-                                        # )
+                                   sliderInput(
+                                     inputId = "contr_filter",
+                                     value = 1,
+                                     step = 1,
+                                     label ="Show contribution greater than..",
+                                     min  = 0, max = 99,
+                                     post = "%"
+                                   )
+                                   # shinyWidgets::radioGroupButtons(
+                                   #   inputId = "contr_filter",
+                                   #   choices = c("1%" =1, "5%"  =  5, "10%" =  10),
+                                   #   label ="Show contribution greater than..",
+                                   #   selected = 1
+                                   # )
                                  ),
                                  col_6(
-                                        sliderInput(
-                                          inputId = "contr_height",
-                                          value = 700,
-                                          min  = 500, max = 1200,
-                                          label ="Graph height",
-                                          step = 50,
-                                          post = "px"
-                                        )
+                                   sliderInput(
+                                     inputId = "contr_height",
+                                     value = 700,
+                                     min  = 500, max = 1200,
+                                     label ="Graph height",
+                                     step = 50,
+                                     post = "px"
+                                   )
                                  ),
                                  col_3(
-                                       shinyWidgets::prettyCheckbox(
-                                         inputId = "values_order",
-                                         value = FALSE,
-                                         label ="Ascending order?",
-                                         icon = icon("check"),
-                                         status = "success"
-                                       )
+                                   shinyWidgets::prettyCheckbox(
+                                     inputId = "values_order",
+                                     value = FALSE,
+                                     label ="Ascending order?",
+                                     icon = icon("check"),
+                                     status = "success"
+                                   )
                                  )
                                  
                                  
@@ -335,17 +341,21 @@ app_ui <- function(request) {
           
           
           
-          # Tables TAB ####
+          # MERGED ####
           tabItem(tabName = "merged",
                   h3("Consumption and exposure at food consumption occassion"),
+                  tags$hr(style="border-color: black;"),
                   box(title = "", 
                       DT::DTOutput("tbl_merged"),
                       mod_downloadTable_ui("tbl_merged"),
                       width = 12
                   )
           ),
+          
+          # By SUBJECT ####
           tabItem(tabName = "individual",
                   h3("Participants and individual exposure"),
+                  tags$hr(style="border-color: black;"),
                   fluidRow(
                     box(title = "", 
                         reactable::reactableOutput("tbl_exposure"),
@@ -359,6 +369,7 @@ app_ui <- function(request) {
           # FOODEX1 TAB ####
           tabItem(tabName = "foodex1",
                   h3("The FoodEx1 food classification system"),
+                  tags$hr(style="border-color: black;"),
                   box(DT::DTOutput("tbl_foodex1"),width = 12),
                   mod_downloadTable_ui("foodex1")
           ),
@@ -369,13 +380,36 @@ app_ui <- function(request) {
                   h3("Consumption statistics"),
                   tags$hr(style="border-color: black;"),
                   fluidRow(
-                    box("Select food level", width = 2,
-                        selectInput("slct_food_levelConsumption",
-                                    label = "FoodEx1 Level",
-                                    choices = fdx1_levels_cons,
-                                    selected = "Level 1"
-                        )
+                    col_4(
+                      box(width = NULL,
+                          #title = "Select",
+                          fluidRow(
+                            col_6(
+                              selectInput("slct_food_levelConsumption",
+                                          label = "FoodEx1 Level",
+                                          choices = fdx1_levels_cons,
+                                          selected = "Level 1"
+                              )
+                              ),
+                              col_6(
+                                shinyWidgets::pickerInput(
+                                  "slct_fdx_level1",
+                                  "FIlter by FoodEx Level 1 items",
+                                  choices = as.character(fdx1_l1_desc),
+                                  multiple = TRUE,
+                                  selected = as.character(fdx1_l1_desc),
+                                  options = list(`actions-box` = TRUE,
+                                                 `live-Search`  = TRUE,
+                                                 `selected-text-format` = "count",
+                                                 liveSearchStyle = "contains"
+                                                 )
+                                )
+                              )
+                          )
+                          
+                      )
                     )
+                    
                     
                   ),
                   fluidRow(
@@ -399,26 +433,13 @@ app_ui <- function(request) {
                     column(width = 4,
                            
                            box(title = "Options ",
-                               
-                               # Too BIG!! whenI open.Exceeds page...
-                               # shinyWidgets::pickerInput(
-                               #   "slct_fdx_level1", 
-                               #   "Choose FoodEx Level 1 items", 
-                               #   choices = stringr::str_wrap(as.character(fdx1_l1_desc), 15),
-                               #   multiple = TRUE,
-                               #   selected = ""
-                               #   options = list(`actions-box` = TRUE,
-                               #                  `live-Search`  = TRUE,
-                               #                  liveSearchStyle = "contains"
-                               #   )
+                               # shinyWidgets::prettyCheckbox(
+                               #   inputId = "hide_water",
+                               #   value = TRUE,
+                               #   label ="Filter out water?",
+                               #   icon = icon("check"),
+                               #   status = "success"
                                # ),
-                               shinyWidgets::prettyCheckbox(
-                                 inputId = "hide_water",
-                                 value = TRUE,
-                                 label ="Filter out water?",
-                                 icon = icon("check"),
-                                 status = "success"
-                               ),
                                selectInput("slct_consumptionType",
                                            "Select consumption type",
                                            choices = c("Consumer based" = "consumer_based",
@@ -440,6 +461,15 @@ app_ui <- function(request) {
           tabItem(tabName = "drillDown",
                   h3("Cross tabulations of demographics"),
                   h4("Get the mean exposure by 2 demographics"),
+                  tags$hr(style="border-color: black;"),
+                  fluidRow(
+                    col_2(
+                      box(width = NULL,
+                        uiOutput("scenario_UI_drillDown")
+                      )
+                      
+                    )
+                  ),
                   fluidRow(
                     column(width = 6,
                            box(width = NULL,
@@ -465,7 +495,7 @@ app_ui <- function(request) {
                                       ),
                                ),
                                column(width = 12/3,
-                                      h4("Cross demo"),
+                                      h4("Cross demographics"),
                                       sortable::rank_list(
                                         text = "Put exactly 2 demographics here",
                                         labels = c(),
@@ -495,6 +525,7 @@ app_ui <- function(request) {
           # Update Data #####
           tabItem(tabName = "consumptionUpdate",
                   h3("Import Consumption Data"),
+                  tags$hr(style="border-color: black;"),
                   fluidRow(
                     column(width = 2,
                            box(width = NULL,
@@ -524,6 +555,7 @@ app_ui <- function(request) {
           ),
           tabItem(tabName = "occurrenceUpdate",
                   h3("Import Occurrene Data"),
+                  tags$hr(style="border-color: black;"),
                   fluidRow(
                     column(width = 2,
                            box(width = NULL, 

@@ -530,17 +530,22 @@ app_server <- function( input, output, session ) {
     
     level_var <- input$slct_food_levelConsumption
     
-    if(input$hide_water){
+    fdx1_filters <- input$slct_fdx_level1
+    
+    #if(input$hide_water){
       consumption <- 
         #sample_consumption %>% 
         tbl_merged() %>% 
-        filter(foodex_l1_desc != water_level1)
-    } else {
-      consumption <- 
+        #filter(foodex_l1_desc != water_level1) %>% 
+        filter(foodex_l1_desc %in% fdx1_filters)
+    #} else {
+     # consumption <- 
         #sample_consumption
-        tbl_merged()
-    }
-    
+     #   tbl_merged()
+   # }
+    if(nrow(consumption) == 0) {
+      validate("Select at least one FoodEx level 1")}
+      
     aggr_consumption_by_group(consumption, tbl_subjects(), level_var)
     
     
@@ -709,8 +714,7 @@ app_server <- function( input, output, session ) {
   
   tbl_contribution <- reactive({
     
-    food_level <- fdx1_levels[[input$slct_level]]
-    
+    food_level <- fdx1_levels_contribution[[input$slct_level]]
     
     vars_rename <- 
       paste0("wcoeff_adjusted_refined_exposure_", tolower(scenarios)) %>% 
@@ -727,12 +731,12 @@ app_server <- function( input, output, session ) {
         across(.cols= all_of(scenarios), .fns = ~sum(., na.rm = TRUE))
       ) %>% 
       ungroup() %>% 
-      full_join(
-        tbl_foodex_desc %>% 
-          distinct(
-            across(all_of(food_level))
-          )
-      ) %>% 
+      # full_join(
+      #   tbl_foodex_desc %>% 
+      #     distinct(
+      #       across(all_of(food_level))
+      #     )
+      # ) %>% 
       tidyr::gather(
         "scenario", "exposure", all_of(scenarios)
       ) %>% 
@@ -754,6 +758,11 @@ app_server <- function( input, output, session ) {
       #  Set NAN 0/0 as NA. Need to show this in the table 
       #mutate(contr_within = if_else(is.nan(contr_within), NA_real_, contr_within)) %>% 
       ungroup()
+   
+    
+    if("foodex_l3_desc_aggr" %in% food_level){
+      tbl_contribution <- rename(tbl_contribution, foodex_l3_desc = foodex_l3_desc_aggr)
+    }
     
     tbl_contribution
     
@@ -770,7 +779,7 @@ app_server <- function( input, output, session ) {
         #contribution >= as.numeric(input$contr_filter)/100
         contribution > input$contr_filter/100
       ) 
-    
+   
   })
   
   
@@ -803,10 +812,9 @@ app_server <- function( input, output, session ) {
     
     table_title <- glue::glue("Food items with greater than {isolate(input$contr_filter)}% contribution\n")
     
-    
     tbl <- 
       contribution_filtered() %>% 
-      reactable::reactable(
+        reactable::reactable(
         # in the Level 1 case
         groupBy = nth(food_level, -2, default = food_level),
         columns = list(
@@ -829,7 +837,7 @@ app_server <- function( input, output, session ) {
                                 filterable = FALSE,
                                 format = colFormat(percent = TRUE, digits =  input$contr_digitsPct)
           ),
-          foodex_l1_desc = colDef(show = rv$show_level1)
+          foodex_l1_desc = colDef(name = "Level 1", show = rv$show_level1)
         ),
         #fullWidth = FALSE,
         #width = 1000,
@@ -977,13 +985,16 @@ app_server <- function( input, output, session ) {
     x <- vars_cross[[1]]
     y <- vars_cross[[2]]
     
+    scenario <- input$slct_scenario_drillDown
+    
+    var_to_use <- paste0("subExp_", scenario)
     
     tbl_exposure() %>% 
       group_by(
         .data[[x]], .data[[y]]
       ) %>% 
       summarise(
-        exposure    = mean(subExp_MB)
+        exposure    = mean(!!sym(var_to_use), na.rm = TRUE)
       ) 
     
   })
@@ -1008,6 +1019,8 @@ app_server <- function( input, output, session ) {
     x <- vars_cross[[1]]
     y <- vars_cross[[2]]
     
+    scenario <- input$slct_scenario_drillDown
+    
     plot_cross <- 
       tbl_cross_demoExposure() %>%
       ggplot(aes(x=.data[[x]], y=exposure, fill = .data[[y]]))+
@@ -1022,7 +1035,7 @@ app_server <- function( input, output, session ) {
         y  =  rv$x_label,
         x= "",
         fill = "",
-        title = glue::glue("Mean exposure across {x} and {y}")
+        title = glue::glue("Mean exposure at {scenario} scenario across {x} and {y}")
       )
     
     

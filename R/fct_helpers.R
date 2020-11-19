@@ -297,6 +297,9 @@ aggr_consumption_by_group <- function(merged, subjects, var){
 
   out <- 
     merged %>% 
+    mutate(
+      across(.data[[var]], as.character)
+    ) %>% 
     group_by(
       subjectid, .data[[var]]
     ) %>% 
