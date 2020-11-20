@@ -3,6 +3,7 @@
 #'The table of subjecs
 #'@param consumption The uploaded consumption file
 #'@param ... Unused yet
+#'@noRd
 create_tbl_subjects <- function(consumption, ...){
   
   dt_names <- names(consumption)
@@ -36,7 +37,7 @@ create_tbl_subjects <- function(consumption, ...){
 #'@param consumption A tibble of the consumption 
 #'@param occurrence_l2 A tibble of the occurence at level 2
 #'@param occurrence_l3 A tibble of the occurrence at level 3 
-#'#'@param ... Unused yet
+#'@param ... Unused yet
 #'@noRd
 create_tbl_merged <- function(consumption, occurrence_l2, occurrence_l3,...){
   
@@ -93,8 +94,8 @@ create_tbl_merged <- function(consumption, occurrence_l2, occurrence_l3,...){
     
     # Exposure L2 at each food consumptio occassion
     mutate(
-      meal_exp_mean_LB	= amountfood * LB_mean / weight,
-      meal_exp_mean_MB	= amountfood * MB_mean / weight,
+      meal_exp_mean_LB = amountfood * LB_mean / weight,
+      meal_exp_mean_MB = amountfood * MB_mean / weight,
       meal_exp_mean_UB = amountfood * UB_mean / weight
     ) %>% 
     
@@ -103,7 +104,7 @@ create_tbl_merged <- function(consumption, occurrence_l2, occurrence_l3,...){
     mutate(
       l3_meal_exp_mean_LB	= amountfood * LB_mean_l3 / weight,
       l3_meal_exp_mean_MB	= amountfood * MB_mean_l3 / weight,
-      l3_meal_exp_mean_UB  = amountfood * UB_mean_l3 / weight
+      l3_meal_exp_mean_UB = amountfood * UB_mean_l3 / weight
     ) %>% 
     
     # Refined exposure. If we have info from level 3 then that else from l2
@@ -121,11 +122,17 @@ create_tbl_merged <- function(consumption, occurrence_l2, occurrence_l3,...){
     ) %>% 
     
     #Other Level 3
+    # Need at least 1 value at any scenario in L3
     mutate(
-      foodex_l3_desc_aggr = if_else(is.na(l3_meal_exp_mean_MB), 
-                            paste0("-Other-", foodex_l2_desc), 
-                            foodex_l3_desc)
-    )
+      foodex_l3_desc_aggr = if_else(rowSums(is.na(across(LB_mean_l3:UB_mean_l3)))==3,
+                                    paste0("-Other-", foodex_l2_desc), 
+                                    foodex_l3_desc)
+    ) 
+    # mutate(
+    #   foodex_l3_desc_aggr = if_else(is.na(l3_meal_exp_mean_MB), 
+    #                         paste0("-Other-", foodex_l2_desc), 
+    #                         foodex_l3_desc)
+    # )
   
   #return
   merged
