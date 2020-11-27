@@ -260,14 +260,13 @@ app_ui <- function(request) {
                            
                            tabBox(id = "contribution_panel",width = NULL, 
                                   title= "",
-                                  tabPanel(title = "Table",
+                                  tabPanel(title = "Table",#id = "contr_table",
                                            htmlOutput("contr_tbl_title"),
                                            reactable::reactableOutput("tbl_aggr_contribution"),
                                            mod_downloadTable_ui("tbl_contribution")
                                   ),
-                                  tabPanel(title = "Graphs",
+                                  tabPanel(title = "Graphs",#id = "contr_graph",
                                            uiOutput("contr_UI")
-                                           #ggiraph::girafeOutput("contr_graph", height = NULL)
                                   )
                            ) 
                            
@@ -304,23 +303,28 @@ app_ui <- function(request) {
                                    # )
                                  ),
                                  col_6(
-                                   sliderInput(
-                                     inputId = "contr_height",
-                                     value = 700,
-                                     min  = 500, max = 1200,
-                                     label ="Graph height",
-                                     step = 50,
-                                     post = "px"
+                                   conditionalPanel(
+                                     "input.contribution_panel == 'Graphs'",
+                                     sliderInput(
+                                       inputId = "contr_height",
+                                       value = 700,
+                                       min  = 500, max = 1200,
+                                       label ="Graph height",
+                                       step = 50,
+                                       post = "px"
+                                     ),
+                                     shinyWidgets::prettyCheckbox(
+                                       inputId = "values_order",
+                                       value = FALSE,
+                                       label ="Ascending order?",
+                                       icon = icon("check"),
+                                       status = "success"
+                                     )
                                    )
+                                   
                                  ),
                                  col_3(
-                                   shinyWidgets::prettyCheckbox(
-                                     inputId = "values_order",
-                                     value = FALSE,
-                                     label ="Ascending order?",
-                                     icon = icon("check"),
-                                     status = "success"
-                                   )
+                                   
                                  )
                                  
                                  

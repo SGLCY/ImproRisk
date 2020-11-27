@@ -120,9 +120,9 @@ app_server <- function( input, output, session ) {
     exposure_factor    = if(sample_substance_info$values[5]=="DAILY") {1} else {7},
     exposure_frequency = sample_substance_info$values[5],
     ref_value          = as.numeric(sample_substance_info$values[3]),
+    ref_value_type     = sample_substance_info$values[4],
     sample_size        = nrow(sample_tbl_subjects) , 
     pop_size           = sum(sample_tbl_subjects$wcoeff),
-    
     
     demo               = c("gender" = "Gender", "area" ="Area", "pop_class" = "Population_Class"),
     
@@ -1099,7 +1099,7 @@ app_server <- function( input, output, session ) {
       # Change title
       
       rv$title_statsDemo <- 
-        paste0("Exposure statistics by ", 
+        paste0("Exposure statistics (µg/Kg b.w.) by ", 
                rv$demo[input$slct_demo],
                " at the ",
                input$slct_scenario_exposureDemo,
